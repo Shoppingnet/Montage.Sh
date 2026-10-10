@@ -4,9 +4,15 @@ After=network.target
 
 [Service]
 WorkingDirectory=__APP_DIR__
-ExecStart=__APP_DIR__/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+ExecStart=__APP_DIR__/venv/bin/uvicorn app:app --host 0.0.0.0 --port __PORT__
 Restart=always
 RestartSec=5
+# حدود باش مايضرش البرامج لخرين اللي فنفس السيرفر (Odoo...)
+Nice=10
+IOSchedulingClass=idle
+CPUQuota=__CPU_QUOTA__
+MemoryHigh=__MEM_HIGH__
+MemoryMax=__MEM_MAX__
 
 [Install]
 WantedBy=multi-user.target
