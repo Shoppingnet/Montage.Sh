@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}{{ j.name }}{% endblock %}
+{% block body %}
+{% set busy = j.status in ['queued','analyzing','edit_queued','editing','approved','rendering'] %}
+{% set cls = {'done':'b-done','review':'b-review','error':'b-error'}.get(j.status, 'b-work') %}
+<div class="row" style="justify-content:space-between;margin-bottom:10px">
+  <div><a href="/?batch={{j.batch}}" class="small muted">← الدفعة {{j.batch}}</a>
+    <h2 style="margin:4px 0 0">{{ j.name }}</h2></div>
+  <span class="badge {{cls}}">{% if busy %}<span class="spin"></span> {% endif %}{{ STATUS_AR.get(j.status, j.status) }}{% if j.step %} — {{j.step}}{% endif %}</span>
+</div>
+
+{% if j.error %}<div class="err" style="margin-bottom:12px">{{ j.error }}
+<form method="post" action="/job/{{j.id}}/retry" style="margin-top:8px"><button class="btn sm">عاود جرب</button></form></div>{% endif %}
+
+{% if j.plan and j.plan.notes %}<div class="note" style="margin-bottom:12px">💬 {{ j.plan.notes }}</div>{% endif %}
+
+<div class="grid2">
+  <div class="card">
+    {% if has_final %}
+      <h3>الفيديو النهائي</h3>
+      <video src="/files/{{j.id}}/final.mp4" controls playsinline></video>
+      <div class="row" style="margin-top:10px">
+        <a class="btn primary" href="/files/{{j.id}}/final.mp4?dl=1">⬇ تحميل الفيديو</a>
+        <a class="btn sm" href="/files/{{j.id}}/final.srt?dl=1">ملف الترجمة SRT</a>
+      </div>
+      <details style="margin-top:10px"><summary class="small muted">الفيديو الأصلي</summary>
+        <video src="/files/{{j.id}}/source" controls playsinline style="margin-top:8px"></video></details>
+    {% elif has_work %}
+      <h3>الفيديو الأصلي</h3>
+      <video id="v" src="/files/{{j.id}}/{{ 'enhanced.mp4' if j.enhanced else 'source' }}" controls playsinline></video>
+    {% else %}
+      <p class="muted"><span class="spin"></span> كيتحمّل...</p>
+    {% endif %}
+    <div class="small muted" style="margin-top:8px">
+      {% if j.blur is not none %}الوضوح: {{ j.blur|round(0)|int }}{% endif %}
+      {% if j.enhanced %} · توضّح بـ {{ j.enhanced }}{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>✍️ عطي أمر بالدارجة</h3>
+    <form method="post" action="/job/{{j.id}}/instruct">
+      <textarea name="instruction" required placeholder="مثلا:&#10;- قص من 4 حتى 6 ثواني&#10;- سرّع الفيديو شوية&#10;- بدل الجملة الأولى ودير hook أقوى&#10;- زيد الثمن 199 درهم فالأخير&#10;- نقص صوت الفيديو الأصلي"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn dark" {% if not j.plan %}disabled{% endif %}>طبّق الأمر</button>
+        {% if j.plan_prev %}<button class="btn sm" formaction="/job/{{j.id}}/undo">↶ رجع للنسخة السابقة</button>{% endif %}
+      </div>
+      <div class="hint" style="margin-top:6px">كيفهم: القص، التسريع/التبطيء، تبديل السكريبت، صوت الفيديو الأصلي، والنص ديال التصاور.</div>
+    </form>
+  </div>
+</div>
+
+{% if j.plan %}
+<form method="post" action="/job/{{j.id}}/save" class="card" id="pf">
+  <h3>السكريبت بالدارجة <span class="hint">(التوقيت على الفيديو الأصلي — كليكي على الوقت باش تشوف اللقطة)</span></h3>
+  <div class="seg small muted" style="font-weight:700"><span>من</span><span>حتى</span><span>الجملة</span><span></span></div>
+  <div id="segs">
+  {% for s in j.plan.segments %}
+    <div class="seg">
+      <input type="number" step="0.1" name="seg_start" value="{{ s.start }}" onfocus="seek(this.value)">
+      <input type="number" step="0.1" name="seg_end" value="{{ s.end }}">
+      <textarea name="seg_text">{{ s.text }}</textarea>
+      <button type="button" class="x" onclick="this.parentNode.remove()">×</button>
+    </div>
+  {% endfor %}
+  </div>
+  <button type="button" class="btn sm" onclick="addSeg()">+ زيد جملة</button>
+
+  <div class="grid2" style="margin-top:6px">
+    <div>
+      <label>القص <span class="hint">(من-حتى بالثواني، مثلا: 0-1.5, 8-9)</span></label>
+      <input type="text" name="cuts" value="{{ j.plan.cuts|map('join','-')|join(', ') }}">
+    </div>
+    <div class="row" style="align-items:end">
+      <div style="flex:1"><label>السرعة</label><input type="number" step="0.05" min="0.5" max="2" name="speed" value="{{ j.plan.speed }}"></div>
+      <div style="flex:1"><label>صوت الفيديو الأصلي</label><input type="number" step="0.05" min="0" max="1" name="orig_volume" value="{{ j.plan.orig_volume }}"></div>
+    </div>
+  </div>
+
+  <label>الصوت</label>
+  <select name="voice">{% for n, v in voices %}<option value="{{v}}" {% if v==j.voice %}selected{% endif %}>{{n}}</option>{% endfor %}</select>
+
+  <h3 style="margin-top:16px">النص ديال تصاور الإعلانات</h3>
+  <div class="grid2">
+    <div><label>العنوان</label><input type="text" name="ad_headline" value="{{ j.plan.ad.headline }}"></div>
+    <div><label>الثمن</label><input type="text" name="ad_price" value="{{ j.plan.ad.price }}" placeholder="199 درهم"></div>
+    <div><label>الزر</label><input type="text" name="ad_cta" value="{{ j.plan.ad.cta }}"></div>
+    <div><label>الشارة</label><input type="text" name="ad_badge" value="{{ j.plan.ad.badge }}"></div>
+  </div>
+
+  <label class="chk"><input type="checkbox" name="with_images" value="1" {% if j.make_images and j.img_status != 'done' %}checked{% endif %}> صاوب التصاور مع الفيديو</label>
+  <div class="row" style="margin-top:14px">
+    <button class="btn primary" name="action" value="approve">✓ قبل وصاوب الفيديو</button>
+    <button class="btn" name="action" value="save">حفظ فقط</button>
+    <button class="btn" name="action" value="images">🖼 صاوب التصاور دابا</button>
+  </div>
+</form>
+{% endif %}
+
+{% if j.img_status %}
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h3 style="margin:0">تصاور الإعلانات</h3>
+    {% if ads %}<a class="btn sm primary" href="/files/{{j.id}}/ads.zip?dl=1">⬇ تحميل الكل (ZIP)</a>{% endif %}
+  </div>
+  {% if j.img_status in ['queued','working'] %}<p class="muted"><span class="spin"></span> كيتصاوبو...</p>{% endif %}
+  {% if j.img_status == 'error' %}<div class="err">{{ j.img_error }}</div>{% endif %}
+  <div class="ads" style="margin-top:10px">
+  {% for a in ads %}
+    {% set key = a.split('_',1)[1].rsplit('_',1)[0] %}
+    <a href="/files/{{j.id}}/{{a}}" target="_blank"><img src="/files/{{j.id}}/{{a}}" loading="lazy"><span>{{ PLACEMENTS.get(key, ('','',key))[2] }} · {{ a.split('_')[0] }}</span></a>
+  {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="row" style="margin:10px 0 30px">
+  <form method="post" action="/job/{{j.id}}/reanalyze"><button class="btn sm">↻ عاود كتب السكريبت من الصفر</button></form>
+  <form method="post" action="/job/{{j.id}}/delete" onsubmit="return confirm('متأكد؟')"><button class="btn sm danger">مسح</button></form>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+function seek(t){const v=document.getElementById('v');if(v){v.currentTime=parseFloat(t)||0;v.play();}}
+function addSeg(){const d=document.createElement('div');d.className='seg';
+ d.innerHTML='<input type="number" step="0.1" name="seg_start" value="0"><input type="number" step="0.1" name="seg_end" value="0"><textarea name="seg_text"></textarea><button type="button" class="x" onclick="this.parentNode.remove()">×</button>';
+ document.getElementById('segs').appendChild(d);}
+{% if busy or j.img_status in ['queued','working'] %}
+setTimeout(()=>{if(!document.activeElement.matches('input,textarea,select'))location.reload();},5000);
+{% endif %}
+</script>
+{% endblock %}

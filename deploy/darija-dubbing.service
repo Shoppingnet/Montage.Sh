@@ -1,0 +1,12 @@
+[Unit]
+Description=Darija dubbing web app
+After=network.target
+
+[Service]
+WorkingDirectory=__APP_DIR__
+ExecStart=__APP_DIR__/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

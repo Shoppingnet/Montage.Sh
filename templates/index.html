@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% macro badge(s) -%}
+{% set cls = {'done':'b-done','review':'b-review','error':'b-error'}.get(s, 'b-work') %}
+<span class="badge {{cls}}">{% if s in ['analyzing','editing','rendering'] %}<span class="spin"></span> {% endif %}{{ STATUS_AR.get(s, s) }}</span>
+{%- endmacro %}
+{% block body %}
+
+<div class="card">
+  <h2>دخّل فيديوهات جداد</h2>
+  <form method="post" action="/submit" enctype="multipart/form-data" id="f">
+    <div class="tabs">
+      <button type="button" class="on" data-p="p-links">روابط Drive</button>
+      <button type="button" data-p="p-file">ملف فيه روابط</button>
+      <button type="button" data-p="p-vid">رفع فيديوهات</button>
+    </div>
+    <div class="pane on" id="p-links">
+      <label>رابط فيديو، ولا رابط دوسي Drive، ولا بزاف ديال الروابط (كل واحد فسطر)</label>
+      <textarea name="links_text" placeholder="https://drive.google.com/file/d/...&#10;https://drive.google.com/drive/folders/..."></textarea>
+      <div class="hint">خاص الفيديوهات تكون مفتوحة بـ "Anyone with the link".</div>
+    </div>
+    <div class="pane" id="p-file">
+      <label>ملف txt ولا csv ولا Excel فيه الروابط</label>
+      <input type="file" name="links_file" accept=".txt,.csv,.xlsx,.xlsm">
+    </div>
+    <div class="pane" id="p-vid">
+      <label>اختار فيديو ولا بزاف</label>
+      <input type="file" name="videos" accept="video/*" multiple>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label>معلومات على المنتوج <span class="hint">(اختياري — السمية، الثمن، المميزات)</span></label>
+        <textarea name="product_info" placeholder="مثلا: كرسي مريح للظهر، الثمن 199 درهم، التوصيل فابور"></textarea>
+      </div>
+      <div>
+        <label>أمر لهاد الدفعة كاملة <span class="hint">(اختياري)</span></label>
+        <textarea name="instruction" placeholder="مثلا: قص أول ثانية، سرّع الفيديو شوية، ودير التعليق قصير وحماسي"></textarea>
+      </div>
+    </div>
+    <label>الصوت</label>
+    <select name="voice">{% for n, v in voices %}<option value="{{v}}">{{n}}</option>{% endfor %}</select>
+    <label class="chk"><input type="checkbox" name="make_images" value="1" checked> صاوب حتى تصاور الإعلانات بجميع المقاسات</label>
+    <label class="chk"><input type="checkbox" name="auto_approve" value="1"> بلا مراجعة (يصاوب الفيديو النهائي نيشان)</label>
+    <div style="margin-top:14px"><button class="btn primary" type="submit" id="go">▶ بدا</button></div>
+  </form>
+</div>
+
+<div class="stats" style="margin-bottom:14px">
+  <a class="stat" href="/"><b>{{ counts.values()|sum }}</b>الكل</a>
+  <a class="stat" href="/?status=review"><b>{{ counts.get('review',0) }}</b>خاصهم مراجعة</a>
+  <a class="stat" href="/?status=done"><b>{{ counts.get('done',0) }}</b>واجدين</a>
+  <a class="stat" href="/?status=error"><b>{{ counts.get('error',0) }}</b>غلطات</a>
+</div>
+
+{% if batch %}
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h3 style="margin:0">الدفعة {{batch}}</h3>
+    <form method="post" action="/batch/{{batch}}/approve_all"><button class="btn sm dark">قبل كاع اللي خاصهم مراجعة</button></form>
+  </div>
+  <form method="post" action="/batch/{{batch}}/instruct" class="row" style="margin-top:10px">
+    <input type="text" name="instruction" placeholder="أمر لكاع الفيديوهات ديال هاد الدفعة (مثلا: سرّع شوية)" style="flex:1;min-width:200px" required>
+    <button class="btn sm">طبّق</button>
+  </form>
+</div>
+{% elif batches %}
+<div class="card">
+  <h3>آخر الدفعات</h3>
+  <table class="jobs">
+  {% for b in batches %}
+    <tr><td><a href="/?batch={{b.batch}}"><b>{{b.batch}}</b></a></td><td class="small">{{b.n}} فيديو</td>
+    <td class="small">{{b.done or 0}} واجد</td><td class="small">{% if b.rev %}<span class="badge b-review">{{b.rev}} مراجعة</span>{% endif %}</td></tr>
+  {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>الفيديوهات {% if status %}— {{ STATUS_AR.get(status, status) }}{% endif %}</h3>
+  {% if not jobs %}<p class="muted">مازال ماكاين والو.</p>{% endif %}
+  <table class="jobs">
+  {% for j in jobs %}
+    <tr>
+      <td><a href="/job/{{j.id}}"><b>{{ j.name }}</b></a>
+        {% if j.step %}<div class="small muted">{{j.step}}</div>{% endif %}
+        {% if j.error %}<div class="small" style="color:var(--bad)">{{ j.error[:120] }}</div>{% endif %}</td>
+      <td>{{ badge(j.status) }}</td>
+      <td class="small">{% if j.img_status == 'done' %}🖼 ✓{% elif j.img_status in ['queued','working'] %}🖼 <span class="spin"></span>{% elif j.img_status=='error' %}🖼 ✗{% endif %}</td>
+      <td>{% if j.status == 'done' %}<a class="btn sm" href="/files/{{j.id}}/final.mp4?dl=1">⬇</a>{% else %}<a class="btn sm" href="/job/{{j.id}}">فتح</a>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </table>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');document.getElementById(b.dataset.p).classList.add('on');});
+document.getElementById('f').onsubmit=()=>{const g=document.getElementById('go');g.disabled=true;g.innerHTML='<span class="spin"></span> كيدخّل...';};
+// تحديث أوتوماتيك ملي تتبدل الحالة
+let last=null;
+async function poll(){try{const r=await fetch('/api/jobs?batch={{batch}}');const t=await r.text();
+  if(last!==null&&t!==last&&!document.activeElement.matches('input,textarea,select'))location.reload();last=t;}catch(e){}}
+setInterval(poll,5000);poll();
+</script>
+{% endblock %}
