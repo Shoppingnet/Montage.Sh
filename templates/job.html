@@ -53,12 +53,12 @@
 {% if j.plan %}
 <form method="post" action="/job/{{j.id}}/save" class="card" id="pf">
   <h3><span class="title-ico">📝</span>السكريبت بالدارجة <span class="hint">(التوقيت على الفيديو الأصلي — كليكي على الوقت باش تشوف اللقطة)</span></h3>
-  <div class="seg small muted" style="font-weight:700"><span>من</span><span>حتى</span><span>الجملة</span><span></span></div>
+  <div class="seg seg-head small muted" style="font-weight:700"><span>من</span><span>حتى</span><span>الجملة</span><span></span></div>
   <div id="segs">
   {% for s in j.plan.segments %}
     <div class="seg">
-      <input type="number" step="0.1" name="seg_start" value="{{ s.start }}" onfocus="seek(this.value)">
-      <input type="number" step="0.1" name="seg_end" value="{{ s.end }}">
+      <input type="number" step="0.1" name="seg_start" value="{{ s.start }}" onfocus="seek(this.value)" title="من" aria-label="من">
+      <input type="number" step="0.1" name="seg_end" value="{{ s.end }}" title="حتى" aria-label="حتى">
       <textarea name="seg_text">{{ s.text }}</textarea>
       <button type="button" class="x" onclick="this.parentNode.remove()">×</button>
     </div>
