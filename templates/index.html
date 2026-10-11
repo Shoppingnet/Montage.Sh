@@ -6,12 +6,12 @@
 {% block body %}
 
 <div class="card">
-  <h2>دخّل فيديوهات جداد</h2>
+  <h2><span class="title-ico">🎬</span>دخّل فيديوهات جداد</h2>
   <form method="post" action="/submit" enctype="multipart/form-data" id="f">
     <div class="tabs">
-      <button type="button" class="on" data-p="p-links">روابط Drive</button>
-      <button type="button" data-p="p-file">ملف فيه روابط</button>
-      <button type="button" data-p="p-vid">رفع فيديوهات</button>
+      <button type="button" class="on" data-p="p-links">🔗 روابط Drive</button>
+      <button type="button" data-p="p-file">📄 ملف روابط</button>
+      <button type="button" data-p="p-vid">⬆ رفع فيديوهات</button>
     </div>
     <div class="pane on" id="p-links">
       <label>رابط فيديو، ولا رابط دوسي Drive، ولا بزاف ديال الروابط (كل واحد فسطر)</label>
@@ -41,16 +41,24 @@
     <select name="voice">{% for n, v in voices %}<option value="{{v}}">{{n}}</option>{% endfor %}</select>
     <label class="chk"><input type="checkbox" name="make_images" value="1" checked> صاوب حتى تصاور الإعلانات بجميع المقاسات</label>
     <label class="chk"><input type="checkbox" name="auto_approve" value="1"> بلا مراجعة (يصاوب الفيديو النهائي نيشان)</label>
-    <div style="margin-top:14px"><button class="btn primary" type="submit" id="go">▶ بدا</button></div>
+    <div style="margin-top:18px"><button class="btn primary lg" type="submit" id="go" style="width:100%">▶ بدا الدبلجة</button></div>
   </form>
 </div>
 
-<div class="stats" style="margin-bottom:14px">
-  <a class="stat" href="/"><b>{{ counts.values()|sum }}</b>الكل</a>
-  <a class="stat" href="/?status=review"><b>{{ counts.get('review',0) }}</b>خاصهم مراجعة</a>
-  <a class="stat" href="/?status=done"><b>{{ counts.get('done',0) }}</b>واجدين</a>
-  <a class="stat" href="/?status=error"><b>{{ counts.get('error',0) }}</b>غلطات</a>
+<div class="stats">
+  <a class="stat {% if not status %}on{% endif %}" href="/"><b>{{ counts.values()|sum }}</b><span>الكل</span></a>
+  <a class="stat s-review {% if status=='review' %}on{% endif %}" href="/?status=review"><b>{{ counts.get('review',0) }}</b><span>خاصهم مراجعة</span></a>
+  <a class="stat s-done {% if status=='done' %}on{% endif %}" href="/?status=done"><b>{{ counts.get('done',0) }}</b><span>واجدين</span></a>
+  <a class="stat s-error {% if status=='error' %}on{% endif %}" href="/?status=error"><b>{{ counts.get('error',0) }}</b><span>غلطات</span></a>
 </div>
+
+{% if disk %}
+<div class="disk {% if disk.low %}low{% endif %}">
+  <div class="row" style="justify-content:space-between"><b>💾 الديسك</b><span class="small">{{disk.free_gb}} GB خاوية · الفيديوهات: {{disk.jobs_gb}} GB</span></div>
+  <div class="bar"><i style="width:{{disk.pct}}%"></i></div>
+  {% if disk.low %}<div class="small" style="margin-top:6px">⚠ البلاصة قليلة! مسح الفيديوهات القدام اللي سليتي منهم باش مايتضررش Odoo.</div>{% endif %}
+</div>
+{% endif %}
 
 {% if batch %}
 <div class="card">
@@ -65,7 +73,7 @@
 </div>
 {% elif batches %}
 <div class="card">
-  <h3>آخر الدفعات</h3>
+  <h3><span class="title-ico">📦</span>آخر الدفعات</h3>
   <table class="jobs">
   {% for b in batches %}
     <tr><td><a href="/?batch={{b.batch}}"><b>{{b.batch}}</b></a></td><td class="small">{{b.n}} فيديو</td>
@@ -76,8 +84,8 @@
 {% endif %}
 
 <div class="card">
-  <h3>الفيديوهات {% if status %}— {{ STATUS_AR.get(status, status) }}{% endif %}</h3>
-  {% if not jobs %}<p class="muted">مازال ماكاين والو.</p>{% endif %}
+  <h3><span class="title-ico">🎞</span>الفيديوهات {% if status %}— {{ STATUS_AR.get(status, status) }}{% endif %}</h3>
+  {% if not jobs %}<div class="empty"><span class="ico">🎬</span>مازال ماكاين حتى فيديو. دخّل روابط ولا رفع فيديو من الفوق.</div>{% endif %}
   <table class="jobs">
   {% for j in jobs %}
     <tr>
@@ -86,7 +94,7 @@
         {% if j.error %}<div class="small" style="color:var(--bad)">{{ j.error[:120] }}</div>{% endif %}</td>
       <td>{{ badge(j.status) }}</td>
       <td class="small">{% if j.img_status == 'done' %}🖼 ✓{% elif j.img_status in ['queued','working'] %}🖼 <span class="spin"></span>{% elif j.img_status=='error' %}🖼 ✗{% endif %}</td>
-      <td>{% if j.status == 'done' %}<a class="btn sm" href="/files/{{j.id}}/final.mp4?dl=1">⬇</a>{% else %}<a class="btn sm" href="/job/{{j.id}}">فتح</a>{% endif %}</td>
+      <td>{% if j.status == 'done' %}<a class="btn sm primary" href="/files/{{j.id}}/final.mp4?dl=1">⬇ تحميل</a>{% else %}<a class="btn sm" href="/job/{{j.id}}">فتح</a>{% endif %}</td>
     </tr>
   {% endfor %}
   </table>

@@ -227,6 +227,17 @@ def list_jobs(batch=None, status=None):
         return [dict(r) for r in c.execute(q + " ORDER BY created DESC LIMIT 300", args)]
 
 
+def disk_info():
+    """البلاصة الخاوية فالديسك (مشترك مع برامج أخرى فالسيرفر)."""
+    try:
+        u = shutil.disk_usage(DATA)
+    except OSError:
+        return None
+    jobs_bytes = sum(f.stat().st_size for f in JOBS.rglob("*") if f.is_file()) if JOBS.exists() else 0
+    return {"free_gb": round(u.free / 1e9, 1), "pct": round(100 * u.used / u.total),
+            "jobs_gb": round(jobs_bytes / 1e9, 2), "low": u.free < float(os.getenv("DISK_WARN_GB", "5")) * 1e9}
+
+
 @app.get("/")
 def index(request: Request, batch: str = "", status: str = ""):
     with db() as c:
@@ -236,7 +247,7 @@ def index(request: Request, batch: str = "", status: str = ""):
             "FROM jobs GROUP BY batch ORDER BY t DESC LIMIT 15")]
     return T.TemplateResponse(request, "index.html", {
         "jobs": list_jobs(batch or None, status or None), "voices": voices(), "counts": counts,
-        "batches": batches, "batch": batch, "status": status})
+        "batches": batches, "batch": batch, "status": status, "disk": disk_info()})
 
 
 @app.post("/submit")
