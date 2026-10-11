@@ -11,6 +11,8 @@ from pathlib import Path
 import requests
 
 MOCK = os.getenv("MOCK", "0") == "1"
+# سرعة الضغط ديال الفيديو: veryfast أسرع بزاف فالسيرفرات الصغار (الجودة كتبقا مزيانة بـ CRF)
+PRESET = os.getenv("FFMPEG_PRESET", "veryfast")
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".webm", ".mkv", ".avi", ".3gp", ".mpeg", ".mpg"}
 
 
@@ -173,7 +175,7 @@ def enhance(src: Path, out: Path):
     nw, nh = int(w * scale) // 2 * 2, int(h * scale) // 2 * 2
     vf = f"scale={nw}:{nh}:flags=lanczos,hqdn3d=1.5:1.5:6:6,unsharp=5:5:1.0:5:5:0.0"
     cmd = ["ffmpeg", "-y", "-i", str(src), "-vf", vf, "-c:v", "libx264", "-crf", "18",
-           "-preset", "medium", "-pix_fmt", "yuv420p"]
+           "-preset", PRESET, "-pix_fmt", "yuv420p"]
     cmd += ["-c:a", "copy"] if has_audio(src) else ["-an"]
     run(cmd + [str(out)])
     return "ffmpeg"
@@ -391,7 +393,7 @@ def render_edit(src: Path, plan, out: Path):
         parts.append(f"[ac]{_atempo_chain(speed)}[ao]")
     cmd = ["ffmpeg", "-y", "-i", str(src), "-filter_complex", ";".join(parts), "-map", "[vo]"]
     cmd += ["-map", "[ao]", "-c:a", "aac", "-b:a", "160k"] if audio else ["-an"]
-    run(cmd + ["-c:v", "libx264", "-crf", "19", "-preset", "medium", "-pix_fmt", "yuv420p", str(out)])
+    run(cmd + ["-c:v", "libx264", "-crf", "19", "-preset", PRESET, "-pix_fmt", "yuv420p", str(out)])
 
 
 def _atempo_chain(f):
@@ -527,6 +529,6 @@ def final_mix(edited: Path, voice: Path, plan, total, out: Path):
             cmd += ["-map", "0:v", "-map", "1:a"]
     cmd += ["-c:v", "libx264" if vf else "copy"]
     if vf:
-        cmd += ["-crf", "19", "-pix_fmt", "yuv420p"]
+        cmd += ["-crf", "19", "-preset", PRESET, "-pix_fmt", "yuv420p"]
     cmd += ["-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(out)]
     run(cmd)
