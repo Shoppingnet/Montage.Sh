@@ -233,6 +233,7 @@ def stage_images(job_id):
 
 def _child(fn_name, jid, conn):
     try:
+        os.nice(10)  # الخدمة التقيلة بأولوية ضعيفة، باش الصفحة تبقا سريعة
         globals()[fn_name](jid)
         conn.send(None)
     except Exception as e:  # noqa

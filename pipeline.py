@@ -20,6 +20,9 @@ VIDEO_EXT = {".mp4", ".mov", ".m4v", ".webm", ".mkv", ".avi", ".3gp", ".mpeg", "
 def run(cmd):
     # حد أقصى للوقت: إلا تبلوكا FFmpeg كتطلع غلطة بلاصة ما يبقا الفيديو "كيتصاوب" ديما
     try:
+        # nice: FFmpeg كياخد غير المعالج اللي بقا، والصفحة كتبقا كتجاوب ديما
+        if cmd and cmd[0] == "ffmpeg":
+            cmd = ["nice", "-n", "15", *cmd[:1], "-threads", os.getenv("FFMPEG_THREADS", "2"), *cmd[1:]]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=int(os.getenv("FFMPEG_TIMEOUT", "2400")))
     except subprocess.TimeoutExpired:
         raise RuntimeError("FFmpeg طوّل بزاف وتوقف (الفيديو طويل ولا السيرفر مضغوط). جرب فيديو أقصر.")
