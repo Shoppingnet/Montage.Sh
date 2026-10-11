@@ -102,6 +102,29 @@ def jdir(job_id):
     return d
 
 
+def save_photo(data: bytes, out: Path):
+    """كيسجل تصويرة المنتوج JPG (مدوّرة صحيحة وماشي كبيرة بزاف)."""
+    from io import BytesIO
+    from PIL import Image, ImageOps
+    try:
+        img = ImageOps.exif_transpose(Image.open(BytesIO(data))).convert("RGB")
+    except Exception:
+        raise HTTPException(400, "هادي ماشي تصويرة (JPG ولا PNG ولا WEBP)")
+    img.thumbnail((2000, 2000))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img.save(out, quality=92)
+
+
+def product_photo(job_id):
+    """تصويرة المنتوج ديال هاد الفيديو، ولا ديال الدفعة كاملة."""
+    p = JOBS / job_id / "product.jpg"
+    if p.exists():
+        return p
+    j = get(job_id)
+    b = DATA / "uploads" / (j["batch"] if j else "") / "product.jpg"
+    return b if j and b.exists() else None
+
+
 def work_video(job_id):
     d = jdir(job_id)
     for name in ("enhanced.mp4",):
@@ -128,7 +151,7 @@ def stage_analyze(job_id):
         update(job_id, step="كيوضح الفيديو", blur=score)
         enhanced = P.enhance(src, d / "enhanced.mp4")
     update(job_id, step="Gemini كيشوف الفيديو وكيكتب السكريبت", blur=score, enhanced=enhanced)
-    plan = P.analyze(work_video(job_id), j["product_info"], j["instruction"])
+    plan = P.analyze(work_video(job_id), j["product_info"], j["instruction"], product_photo(job_id))
     update(job_id, plan=plan, step="", error="",
            status="approved" if j["auto_approve"] else "review",
            img_status="queued" if j["make_images"] else j["img_status"])
@@ -164,7 +187,7 @@ def stage_images(job_id):
     out = jdir(job_id) / "ads"
     shutil.rmtree(out, ignore_errors=True)
     ad_images.make_ad_images(work_video(job_id), j["plan"]["ad"], out, j["plan"].get("product", ""),
-                             j["plan"].get("frames"))
+                             j["plan"].get("frames"), product_photo(job_id))
     update(job_id, img_status="done", img_error="")
 
 
@@ -254,11 +277,14 @@ def index(request: Request, batch: str = "", status: str = ""):
 @app.post("/submit")
 async def submit(links_text: str = Form(""), product_info: str = Form(""), instruction: str = Form(""),
                  voice: str = Form(""), auto_approve: str = Form(""), make_images: str = Form(""),
-                 links_file: UploadFile | None = File(None), videos: list[UploadFile] = File(default=[])):
+                 links_file: UploadFile | None = File(None), videos: list[UploadFile] = File(default=[]),
+                 product_photo_file: UploadFile | None = File(None)):
     batch = time.strftime("%m%d-%H%M") + "-" + uuid.uuid4().hex[:4]
     up = DATA / "uploads" / batch
     up.mkdir(parents=True, exist_ok=True)
     items, errors = [], []  # (name, source)
+    if product_photo_file and product_photo_file.filename:
+        save_photo(await product_photo_file.read(), up / "product.jpg")
 
     links = P.URL_RE.findall(links_text or "")
     if links_file and links_file.filename:
@@ -306,7 +332,8 @@ def job_page(request: Request, job_id: str):
     ads = sorted(p.name for p in (d / "ads").glob("*.jpg")) if (d / "ads").exists() else []
     return T.TemplateResponse(request, "job.html", {
         "j": j, "voices": voices(), "ads": ads,
-        "has_work": bool(list(d.glob("source.*"))), "has_final": (d / "final.mp4").exists()})
+        "has_work": bool(list(d.glob("source.*"))), "has_final": (d / "final.mp4").exists(),
+        "photo": product_photo(job_id), "own_photo": (d / "product.jpg").exists()})
 
 
 def _floats(xs):
@@ -411,6 +438,16 @@ def instruct_batch(batch: str, instruction: str = Form(...)):
 ALLOWED = {"final.mp4", "final.srt", "edited.mp4", "enhanced.mp4", "ads.zip"}
 
 
+@app.post("/job/{job_id}/photo")
+async def job_photo(job_id: str, photo: UploadFile | None = File(None), remove: str = Form("")):
+    p = jdir(Path(job_id).name) / "product.jpg"
+    if remove:
+        p.unlink(missing_ok=True)
+    elif photo and photo.filename:
+        save_photo(await photo.read(), p)
+    return RedirectResponse(f"/job/{job_id}", status_code=303)
+
+
 @app.get("/files/{job_id}/{name}")
 def files(job_id: str, name: str, dl: int = 0):
     d = JOBS / Path(job_id).name
@@ -419,6 +456,11 @@ def files(job_id: str, name: str, dl: int = 0):
         if not src:
             raise HTTPException(404)
         return FileResponse(src[0])
+    if name == "product.jpg":
+        p = product_photo(Path(job_id).name)
+        if not p:
+            raise HTTPException(404)
+        return FileResponse(p)
     if name == "ads.zip":
         p = d / "ads" / "ads.zip"
     elif name.endswith(".jpg"):

@@ -37,6 +37,8 @@
         <textarea name="instruction" placeholder="مثلا: قص أول ثانية، سرّع الفيديو شوية، ودير التعليق قصير وحماسي"></textarea>
       </div>
     </div>
+    <label>📷 تصويرة المنتوج <span class="hint">(اختياري — كتستعمل فالتصاور ديال الإعلانات، وكتعاون Gemini يعرف المنتوج فالفيديو)</span></label>
+    <input type="file" name="product_photo_file" accept="image/*">
     <label>الصوت</label>
     <select name="voice">{% for n, v in voices %}<option value="{{v}}">{{n}}</option>{% endfor %}</select>
     <label class="chk"><input type="checkbox" name="make_images" value="1" checked> صاوب حتى تصاور الإعلانات بجميع المقاسات</label>

@@ -244,11 +244,14 @@ def compose(frame: Image.Image, size, ad):
     return canvas
 
 
-def make_ad_images(video: Path, ad: dict, out_dir: Path, product="", picks=None):
+def make_ad_images(video: Path, ad: dict, out_dir: Path, product="", picks=None, photo=None):
     out_dir.mkdir(parents=True, exist_ok=True)
+    n = int(os.getenv("AD_FRAMES", "2"))
     frames = frames_at(video, picks) if picks else []
     if not frames:
-        frames = best_frames(video, int(os.getenv("AD_FRAMES", "2")))
+        frames = best_frames(video, n)
+    if photo:  # تصويرة المنتوج اللي رفع المستعمل هي اللولة، ومن بعد لقطة من الفيديو
+        frames = [Image.open(photo).convert("RGB")] + frames[:max(1, n - 1)]
     files = []
     for i, fr in enumerate(frames, 1):
         fr = ai_polish(fr, product or ad.get("headline", ""), out_dir, i)

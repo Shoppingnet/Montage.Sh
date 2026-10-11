@@ -99,6 +99,21 @@
 </form>
 {% endif %}
 
+<div class="card">
+  <h3><span class="title-ico">📷</span>تصويرة المنتوج</h3>
+  <div class="photo-row">
+    {% if photo %}<a href="/files/{{j.id}}/product.jpg" target="_blank"><img class="pthumb" src="/files/{{j.id}}/product.jpg"></a>{% endif %}
+    <div style="flex:1;min-width:220px">
+      <p class="small muted" style="margin:0 0 8px">{% if photo %}{% if own_photo %}هادي تصويرة هاد الفيديو.{% else %}هادي تصويرة الدفعة كاملة.{% endif %} كتولّي التصويرة اللولة فالإعلانات.{% else %}مازال ماكايناش. رفعها باش تكون فالإعلانات وتعاون Gemini يلقى المنتوج.{% endif %}</p>
+      <form method="post" action="/job/{{j.id}}/photo" enctype="multipart/form-data" class="row">
+        <input type="file" name="photo" accept="image/*" required style="flex:1;min-width:200px;padding:10px">
+        <button class="btn sm dark">رفع</button>
+      </form>
+      {% if own_photo %}<form method="post" action="/job/{{j.id}}/photo" style="margin-top:6px"><input type="hidden" name="remove" value="1"><button class="btn sm danger">مسح التصويرة</button></form>{% endif %}
+    </div>
+  </div>
+</div>
+
 {% if j.img_status %}
 <div class="card">
   <div class="row" style="justify-content:space-between">

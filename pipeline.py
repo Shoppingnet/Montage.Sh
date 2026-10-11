@@ -268,7 +268,7 @@ def normalize_plan(plan, dur):
     return plan
 
 
-def analyze(video: Path, product_info="", instruction=""):
+def analyze(video: Path, product_info="", instruction="", photo=None):
     """Gemini كيشوف الفيديو وكيكتب السكريبت مقسم + كيطبق الأمر ديال الدفعة إلا كاين."""
     dur = duration(video)
     if MOCK:
@@ -280,6 +280,7 @@ def analyze(video: Path, product_info="", instruction=""):
                                "frames": [{"t": dur * 0.3, "box": [200, 250, 800, 750]}, {"t": dur * 0.7, "box": None}],
                                "notes": "تجربة"}, dur)
     from google.genai import types
+    from PIL import Image
     client = _gemini_client()
     f = client.files.upload(file=str(video))
     while f.state and f.state.name == "PROCESSING":
@@ -292,10 +293,11 @@ def analyze(video: Path, product_info="", instruction=""):
 {SCRIPT_RULES}
 معلومات على المنتوج من المستعمل: {product_info or "ماكاينش"}
 أمر من المستعمل (طبقو إلا كان): {instruction or "ماكاينش"}
+{"التصويرة اللي مع الفيديو هي تصويرة المنتوج: استعملها باش تعرف المنتوج وتلقاه فالفيديو (frames و box)." if photo else ""}
 {PLAN_SCHEMA_TEXT}"""
     resp = client.models.generate_content(
         model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
-        contents=[f, prompt],
+        contents=[f] + ([Image.open(photo)] if photo else []) + [prompt],
         config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.7),
     )
     try:
