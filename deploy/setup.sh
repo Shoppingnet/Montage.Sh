@@ -6,8 +6,8 @@ set -e
 APP_DIR=$(cd "$(dirname "$0")/.." && pwd)
 PORT=${PORT:-8000}
 CPU_QUOTA=${CPU_QUOTA:-100%}
-MEM_HIGH=${MEM_HIGH:-1500M}
-MEM_MAX=${MEM_MAX:-2G}
+MEM_HIGH=${MEM_HIGH:-1200M}
+MEM_MAX=${MEM_MAX:-1600M}
 
 if ss -ltn "sport = :$PORT" | grep -q LISTEN && ! systemctl is-active -q darija-dubbing; then
   echo "!! البور $PORT مستعمل من برنامج آخر. ختار واحد آخر: PORT=8010 bash deploy/setup.sh"; exit 1

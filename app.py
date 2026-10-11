@@ -191,6 +191,29 @@ def stage_images(job_id):
     update(job_id, img_status="done", img_error="")
 
 
+def _child(fn_name, jid, conn):
+    try:
+        globals()[fn_name](jid)
+        conn.send(None)
+    except Exception as e:  # noqa
+        traceback.print_exc()
+        conn.send(str(e) or type(e).__name__)
+
+
+def run_isolated(fn, jid):
+    """كل خدمة كتخدم فبرنامج بوحدها: ملي كتسالي الذاكرة كترجع كاملة، والسيت مايتبلوكاش."""
+    import multiprocessing as mp
+    ctx = mp.get_context("spawn")
+    parent, child = ctx.Pipe(duplex=False)
+    p = ctx.Process(target=_child, args=(fn.__name__, jid, child), daemon=True)
+    p.start()
+    child.close()
+    p.join()
+    err = parent.recv() if parent.poll() else "الخدمة توقفات (غالبا ماكفاتهاش الذاكرة RAM)"
+    if err:
+        raise RuntimeError(err)
+
+
 def worker(n):
     while True:
         did = False
@@ -203,7 +226,7 @@ def worker(n):
                 continue
             did = True
             try:
-                fn(jid)
+                run_isolated(fn, jid)
             except Exception as e:  # noqa
                 traceback.print_exc()
                 if col == "img_status":
