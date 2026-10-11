@@ -196,8 +196,9 @@ security = HTTPBasic()
 
 
 def auth(cred: HTTPBasicCredentials = Depends(security)):
-    ok_u = secrets.compare_digest(cred.username, os.getenv("APP_USER", "admin"))
-    ok_p = secrets.compare_digest(cred.password, os.getenv("APP_PASSWORD", "change-me"))
+    # bytes باش مايطيحش ملي تكون كلمة السر فيها حروف عربية
+    ok_u = secrets.compare_digest(cred.username.encode(), os.getenv("APP_USER", "admin").encode())
+    ok_p = secrets.compare_digest(cred.password.encode(), os.getenv("APP_PASSWORD", "change-me").encode())
     if not (ok_u and ok_p):
         raise HTTPException(401, headers={"WWW-Authenticate": "Basic"})
 
