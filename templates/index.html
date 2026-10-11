@@ -41,7 +41,20 @@
     <input type="file" name="product_photo_file" accept="image/*">
     <label>الصوت</label>
     <select name="voice">{% for n, v in voices %}<option value="{{v}}">{{n}}</option>{% endfor %}</select>
-    <label class="chk"><input type="checkbox" name="make_images" value="1" checked> صاوب حتى تصاور الإعلانات بجميع المقاسات</label>
+    <div class="opts">
+      <label class="chk"><input type="checkbox" name="opt_subs" value="1" checked> 💬 ترجمة مكتوبة على الفيديو</label>
+      <label class="chk"><input type="checkbox" name="make_images" value="1" checked> 🖼 تصاور الإعلانات بجميع المقاسات</label>
+      <label class="chk"><input type="checkbox" name="opt_sizes" value="1"> 📐 الفيديو بـ 3 مقاسات (9:16، 1:1، 4:5)</label>
+      <label class="chk"><input type="checkbox" name="opt_ab" value="1"> 🅰🅱 3 نسخ بـ hooks مختلفين (A/B)</label>
+      <label class="chk"><input type="checkbox" name="merge" value="1"> 🎞 جمع الفيديوهات كاملين ففيديو واحد (مونتاج)</label>
+    </div>
+    <label>🎵 الموسيقى الخلفية <span class="hint">(كتنقص بوحدها ملي كيهضر التعليق)</span></label>
+    <select name="opt_music">
+      <option value="none">بلا موسيقى</option>
+      {% if music %}<option value="random">عشوائي من المكتبة</option>{% endif %}
+      {% for m in music %}<option value="{{m}}">{{m}}</option>{% endfor %}
+    </select>
+    {% if not music %}<div class="hint">مازال ماكاين حتى موسيقى. زيدها من "مكتبة الموسيقى" التحت.</div>{% endif %}
     <label class="chk"><input type="checkbox" name="auto_approve" value="1"> بلا مراجعة (يصاوب الفيديو النهائي نيشان)</label>
     <div style="margin-top:18px"><button class="btn primary lg" type="submit" id="go" style="width:100%">▶ بدا الدبلجة</button></div>
   </form>
@@ -52,6 +65,20 @@
   <a class="stat s-review {% if status=='review' %}on{% endif %}" href="/?status=review"><b>{{ counts.get('review',0) }}</b><span>خاصهم مراجعة</span></a>
   <a class="stat s-done {% if status=='done' %}on{% endif %}" href="/?status=done"><b>{{ counts.get('done',0) }}</b><span>واجدين</span></a>
   <a class="stat s-error {% if status=='error' %}on{% endif %}" href="/?status=error"><b>{{ counts.get('error',0) }}</b><span>غلطات</span></a>
+</div>
+
+<div class="card" id="music">
+  <h3><span class="title-ico">🎵</span>مكتبة الموسيقى</h3>
+  <p class="small muted" style="margin:0 0 8px">رفع موسيقى بلا حقوق (mp3) باش تستعملها تحت التعليق. نصيحة: YouTube Audio Library فيها موسيقى فابور.</p>
+  <form method="post" action="/music" enctype="multipart/form-data" class="row">
+    <input type="file" name="files" accept="audio/*" multiple required style="flex:1;min-width:200px;padding:10px">
+    <button class="btn sm dark">رفع</button>
+  </form>
+  {% for m in music %}
+  <form method="post" action="/music" class="row" style="justify-content:space-between;margin-top:8px">
+    <span class="small">🎵 {{m}}</span><input type="hidden" name="remove" value="{{m}}"><button class="btn sm danger">مسح</button>
+  </form>
+  {% endfor %}
 </div>
 
 {% if disk %}

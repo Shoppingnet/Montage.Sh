@@ -96,6 +96,10 @@ def download(source, out_dir: Path):
     """source: 'drive:<id>' ولا 'url:<link>' ولا 'local:<path>'. كيرجع المسار."""
     out_dir.mkdir(parents=True, exist_ok=True)
     kind, _, val = source.partition(":")
+    if kind == "merge":  # بزاف ديال الفيديوهات كيتجمعو فواحد
+        dst = out_dir / "source.mp4"
+        merge_videos([Path(x) for x in val.split("|")], dst)
+        return dst
     if kind == "local":
         dst = out_dir / ("source" + Path(val).suffix.lower())
         shutil.copy(val, dst)
@@ -150,7 +154,8 @@ def needs_enhance(path):
     score = blur_score(path)
     w, h = video_size(path)
     threshold = float(os.getenv("BLUR_THRESHOLD", "100"))
-    low_res = min(w, h) < int(os.getenv("MIN_SHORT_SIDE", "720"))
+    low_res = (os.getenv("ENHANCE_LOW_RES", "0") == "1"
+               and min(w, h) < int(os.getenv("MIN_SHORT_SIDE", "720")))
     return score, (score < threshold or low_res)
 
 
@@ -197,6 +202,7 @@ PLAN_SCHEMA_TEXT = """
     {"start": 0.0, "end": 3.0, "scene": "شنو كيبان فاللقطة", "text": "الجملة بالدارجة"}
   ],
   "frames": [{"t": 4.2, "box": [ymin, xmin, ymax, xmax]}],  // 2 حتى 3 لقطات للتصاور الإعلانية (شوف القواعد التحت)
+  "hooks": ["جملة بداية بديلة 1", "جملة بداية بديلة 2"],  // 2 hooks مختلفين (أسلوب آخر) بلاصة الجملة الأولى، للتجربة A/B
   "ad": {"headline": "عنوان قصير وقوي للتصويرة (4 حتى 7 كلمات)", "price": "الثمن بالأرقام مثلا 199 درهم، ولا خاوي إلا ماكانش", "cta": "اطلب دابا", "badge": "الخلاص عند الاستلام"},
   "notes": "شرح قصير بالدارجة لشنو تبدل"
 }
@@ -268,6 +274,7 @@ def normalize_plan(plan, dur):
             box = None
         frames.append({"t": round(t, 2), "box": box})
     plan["frames"] = frames[:4]
+    plan["hooks"] = [str(x).strip() for x in (plan.get("hooks") or []) if str(x).strip()][:2]
     ad = plan.get("ad") or {}
     plan["ad"] = {"headline": ad.get("headline") or plan["product"], "price": ad.get("price") or "",
                   "cta": ad.get("cta") or "اطلب دابا", "badge": ad.get("badge") or "الخلاص عند الاستلام"}
@@ -284,6 +291,7 @@ def analyze(video: Path, product_info="", instruction="", photo=None):
         return normalize_plan({"product": "منتوج", "cuts": [], "speed": 1.0, "segments": segs,
                                "ad": {"headline": "كرسي مريح للظهر بجودة عالية", "price": "199 درهم"},
                                "frames": [{"t": dur * 0.3, "box": [200, 250, 800, 750]}, {"t": dur * 0.7, "box": None}],
+                               "hooks": ["جملة بداية بديلة واحد", "جملة بداية بديلة جوج"],
                                "notes": "تجربة"}, dur)
     from google.genai import types
     from PIL import Image
@@ -372,6 +380,59 @@ def map_time(t, cuts, speed):
             removed += t - s
             break
     return (t - removed) / speed
+
+
+def render_final(src: Path, plan, voice_id, work: Path, out: Path, subs=True, music: Path = None):
+    """كلشي فـ encode واحد: القص + التسريع + التعليق + الموسيقى + الترجمة. (أسرع جوج حتى 3 مرات)"""
+    dur = duration(src)
+    ranges = keep_ranges(plan["cuts"], dur)
+    speed = plan["speed"]
+    edited_dur = sum(e - s_ for s_, e in ranges) / speed
+    voice, placed, total = build_voice_track(plan, voice_id, edited_dur, work)
+    audio = has_audio(src)
+    w, h = video_size(src)
+    cap = int(os.getenv("MAX_SHORT_SIDE", "1080"))
+    if min(w, h) > cap:
+        k = cap / min(w, h)
+        w, h = int(w * k) // 2 * 2, int(h * k) // 2 * 2
+    cmd, filt = ["ffmpeg", "-y"], []
+    for s_, e in ranges:
+        cmd += ["-ss", f"{s_:.3f}", "-t", f"{e - s_:.3f}", "-i", str(src)]
+    n = len(ranges)
+    cmd += ["-i", str(voice)]
+    if music:
+        cmd += ["-stream_loop", "-1", "-i", str(music)]
+    labels = "".join(f"[{i}:v]" + (f"[{i}:a]" if audio else "") for i in range(n))
+    filt.append(labels + f"concat=n={n}:v=1:a={1 if audio else 0}[vc]" + ("[ac]" if audio else ""))
+    vf = [f"setpts=PTS/{speed:.4f}", f"scale={w}:{h}", "setsar=1"]
+    if total - edited_dur > 0.05:
+        vf.append(f"tpad=stop_mode=clone:stop_duration={total - edited_dur + 0.3:.3f}")
+    if subs:
+        ass = work / "subs.ass"
+        write_ass(placed, ass, w, h)
+        vf.append(f"ass='{ass}':fontsdir='{Path(__file__).parent / 'fonts'}'")
+    filt.append("[vc]" + ",".join(vf) + ",format=yuv420p[v]")
+    mix = ["[vo]"]
+    if music:
+        filt.append(f"[{n}:a]asplit=2[vo][sc]")
+        mv = float(plan.get("music_volume", os.getenv("MUSIC_VOLUME", "0.22")))
+        filt.append(f"[{n + 1}:a]volume={mv:.3f},aresample=44100,aformat=channel_layouts=stereo[m]")
+        filt.append("[m][sc]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=350[md]")
+        mix.append("[md]")
+    else:
+        filt.append(f"[{n}:a]anull[vo]")
+    vol = plan["orig_volume"]
+    if audio and vol > 0.001:
+        filt.append(f"[ac]{_atempo_chain(speed)},volume={vol:.3f},aresample=44100,apad[bg]")
+        mix.append("[bg]")
+    elif audio:
+        filt.append("[ac]anullsink")
+    filt.append("".join(mix) + f"amix=inputs={len(mix)}:duration=first:normalize=0[a]")
+    cmd += ["-filter_complex", ";".join(filt), "-map", "[v]", "-map", "[a]",
+            "-c:v", "libx264", "-crf", "21", "-preset", PRESET, "-c:a", "aac", "-b:a", "192k",
+            "-t", f"{total:.3f}", "-movflags", "+faststart", str(out)]
+    run(cmd)
+    return placed, total
 
 
 def render_edit(src: Path, plan, out: Path):
@@ -474,9 +535,13 @@ def build_voice_track(plan, voice_id, edited_dur, work: Path):
         if b - a > 0.2:
             segs.append({**s, "o_start": a, "o_end": b})
     placed, cursor = [], 0.0
+    cache = work.parent / "tts_cache"
+    cache.mkdir(exist_ok=True)
     for i, s in enumerate(segs):
-        raw = work / f"seg{i:02d}.mp3"
-        tts(s["text"], voice_id, raw)
+        import hashlib
+        raw = cache / (hashlib.sha1(f"{voice_id}|{s['text']}".encode()).hexdigest()[:16] + ".mp3")
+        if not raw.exists() or raw.stat().st_size == 0:
+            tts(s["text"], voice_id, raw)
         d = duration(raw)
         start = max(s["o_start"], cursor)
         next_start = segs[i + 1]["o_start"] if i + 1 < len(segs) else edited_dur
@@ -515,24 +580,109 @@ def write_srt(placed, path: Path):
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def final_mix(edited: Path, voice: Path, plan, total, out: Path):
+def write_ass(placed, path: Path, w: int, h: int):
+    """ترجمة مكتوبة على الفيديو: كل 3-4 كلمات بوحدهم، بخط عريض وحاشية كحلة (بحال CapCut)."""
+    def ts(t):
+        cs = int(round(t * 100))
+        return f"{cs//360000}:{cs//6000%60:02d}:{cs//100%60:02d}.{cs%100:02d}"
+    size = int(min(w, h) * float(os.getenv("SUBS_SIZE", "0.095")))
+    margin_v = int(h * (0.22 if h / w > 1.3 else 0.1))
+    lines = ["[Script Info]", "ScriptType: v4.00+", f"PlayResX: {w}", f"PlayResY: {h}", "WrapStyle: 0", "",
+             "[V4+ Styles]",
+             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic,"
+             " Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment,"
+             " MarginL, MarginR, MarginV, Encoding",
+             f"Style: D,Cairo,{size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,"
+             f"{max(2, size // 12)},{max(1, size // 25)},2,{int(w*0.06)},{int(w*0.06)},{margin_v},1",
+             f"Style: H,Cairo,{size},&H0000D7FF,&H0000D7FF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,"
+             f"{max(2, size // 12)},{max(1, size // 25)},2,{int(w*0.06)},{int(w*0.06)},{margin_v},1",
+             "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
+    n = int(os.getenv("SUBS_WORDS", "3"))
+    for p in placed:
+        words = p["text"].split()
+        if not words:
+            continue
+        chunks = [words[i:i + n] for i in range(0, len(words), n)]
+        total_chars = sum(len(" ".join(c)) for c in chunks) or 1
+        t = p["start"]
+        dur = p["end"] - p["start"]
+        for k, c in enumerate(chunks):
+            d = dur * len(" ".join(c)) / total_chars
+            style = "H" if k == 0 and p is placed[0] else "D"  # أول جملة (hook) بالأصفر
+            txt = " ".join(c).replace("{", "(").replace("}", ")")
+            lines.append(f"Dialogue: 0,{ts(t)},{ts(t + d)},{style},,0,0,0,,{txt}")
+            t += d
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def final_mix(edited: Path, voice: Path, plan, total, out: Path, subs: Path = None, music: Path = None):
+    """كيركب الفيديو + التعليق + صوت الفيديو الأصلي + الموسيقى (كتنقص بوحدها ملي كيهضر) + الترجمة."""
     vdur = duration(edited)
     extra = max(0.0, total - vdur)
-    vf = f"tpad=stop_mode=clone:stop_duration={extra + 0.3:.3f}" if extra > 0.05 else None
+    vf = []
+    if extra > 0.05:
+        vf.append(f"tpad=stop_mode=clone:stop_duration={extra + 0.3:.3f}")
+    if subs:
+        fonts = str(Path(__file__).parent / "fonts")
+        vf.append(f"ass='{subs}':fontsdir='{fonts}'")
     cmd = ["ffmpeg", "-y", "-i", str(edited), "-i", str(voice)]
+    if music:
+        cmd += ["-stream_loop", "-1", "-i", str(music)]
+    filt, mix = [], ["[vo]"]
     vol = plan["orig_volume"]
-    if has_audio(edited) and vol > 0.001:
-        af = (f"[0:a]volume={vol:.3f},apad[bg];[1:a]volume=1.0[vo];"
-              f"[vo][bg]amix=inputs=2:duration=first:normalize=0[a]")
-        filt = af + (f";[0:v]{vf}[v]" if vf else "")
-        cmd += ["-filter_complex", filt, "-map", "[v]" if vf else "0:v", "-map", "[a]"]
+    if music:
+        filt.append("[1:a]asplit=2[vo][sc]")
+        mv = float(plan.get("music_volume", os.getenv("MUSIC_VOLUME", "0.22")))
+        filt.append(f"[2:a]volume={mv:.3f},aresample=44100[m]")
+        filt.append("[m][sc]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=350[md]")
+        mix.append("[md]")
     else:
-        if vf:
-            cmd += ["-filter_complex", f"[0:v]{vf}[v]", "-map", "[v]", "-map", "1:a"]
-        else:
-            cmd += ["-map", "0:v", "-map", "1:a"]
-    cmd += ["-c:v", "libx264" if vf else "copy"]
+        filt.append("[1:a]anull[vo]")
+    if has_audio(edited) and vol > 0.001:
+        filt.append(f"[0:a]volume={vol:.3f},apad[bg]")
+        mix.append("[bg]")
+    filt.append("".join(mix) + f"amix=inputs={len(mix)}:duration=first:normalize=0[a]")
     if vf:
-        cmd += ["-crf", "19", "-preset", PRESET, "-pix_fmt", "yuv420p"]
-    cmd += ["-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(out)]
+        filt.append("[0:v]" + ",".join(vf) + "[v]")
+    cmd += ["-filter_complex", ";".join(filt), "-map", "[v]" if vf else "0:v", "-map", "[a]"]
+    cmd += ["-c:v", "libx264", "-crf", "20", "-preset", PRESET, "-pix_fmt", "yuv420p"] if vf else ["-c:v", "copy"]
+    cmd += ["-c:a", "aac", "-b:a", "192k", "-t", f"{max(total, vdur):.3f}", "-movflags", "+faststart", str(out)]
     run(cmd)
+
+
+SIZES = {"9x16": (1080, 1920), "1x1": (1080, 1080), "4x5": (1080, 1350)}
+
+
+def make_sizes(src: Path, out_dir: Path):
+    """نفس الفيديو بمقاسات أخرى (TikTok/Reels، فيد مربع، فيد طولاني) بخلفية مضببة."""
+    w, h = video_size(src)
+    made = {}
+    for key, (W, H) in SIZES.items():
+        if abs(w / h - W / H) < 0.03:
+            continue  # نفس المقاس ديال الفيديو الأصلي
+        out = out_dir / f"final_{key}.mp4"
+        f = (f"[0:v]split[a][b];[a]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+             f"boxblur=25:2,eq=brightness=-0.08[bg];[b]scale={W}:{H}:force_original_aspect_ratio=decrease[fg];"
+             f"[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v]")
+        run(["ffmpeg", "-y", "-i", str(src), "-filter_complex", f, "-map", "[v]", "-map", "0:a?",
+             "-c:v", "libx264", "-crf", "21", "-preset", PRESET, "-c:a", "copy", "-movflags", "+faststart", str(out)])
+        made[key] = out
+    return made
+
+
+def merge_videos(srcs, out: Path):
+    """كيجمع بزاف ديال الفيديوهات ففيديو واحد (عمودي 1080x1920)، باش يتصاوب منو إعلان واحد."""
+    W, H = 1080, 1920
+    cmd, parts = ["ffmpeg", "-y"], []
+    for p in srcs:
+        cmd += ["-i", str(p)]
+    for i, p in enumerate(srcs):
+        parts.append(f"[{i}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,"
+                     f"setsar=1,fps=30,format=yuv420p[v{i}]")
+        if has_audio(p):
+            parts.append(f"[{i}:a]aresample=44100,aformat=channel_layouts=stereo[a{i}]")
+        else:
+            parts.append(f"anullsrc=r=44100:cl=stereo,atrim=0:{duration(p):.3f}[a{i}]")
+    parts.append("".join(f"[v{i}][a{i}]" for i in range(len(srcs))) + f"concat=n={len(srcs)}:v=1:a=1[v][a]")
+    run(cmd + ["-filter_complex", ";".join(parts), "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-crf", "20",
+               "-preset", PRESET, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)])

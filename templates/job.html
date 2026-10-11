@@ -21,6 +21,7 @@
       <video src="/files/{{j.id}}/final.mp4" controls playsinline></video>
       <div class="row" style="margin-top:10px">
         <a class="btn primary" href="/files/{{j.id}}/final.mp4?dl=1">⬇ تحميل الفيديو</a>
+        {% for e in extras %}<a class="btn sm" href="/files/{{j.id}}/{{e}}?dl=1">⬇ {{ {'final_b.mp4':'نسخة B','final_c.mp4':'نسخة C','final_9x16.mp4':'9:16','final_1x1.mp4':'1:1','final_4x5.mp4':'4:5'}[e] }}</a>{% endfor %}
         <a class="btn sm" href="/files/{{j.id}}/final.srt?dl=1">ملف الترجمة SRT</a>
       </div>
       <details style="margin-top:10px"><summary class="small muted">الفيديو الأصلي</summary>
@@ -79,6 +80,21 @@
 
   <label>الصوت</label>
   <select name="voice">{% for n, v in voices %}<option value="{{v}}" {% if v==j.voice %}selected{% endif %}>{{n}}</option>{% endfor %}</select>
+
+  <h3 style="margin-top:18px"><span class="title-ico">✨</span>الإضافات</h3>
+  <div class="opts">
+    <label class="chk"><input type="checkbox" name="opt_subs" value="1" {% if j.opts.subs %}checked{% endif %}> 💬 ترجمة مكتوبة على الفيديو</label>
+    <label class="chk"><input type="checkbox" name="opt_sizes" value="1" {% if j.opts.sizes %}checked{% endif %}> 📐 3 مقاسات (9:16، 1:1، 4:5)</label>
+    <label class="chk"><input type="checkbox" name="opt_ab" value="1" {% if j.opts.ab %}checked{% endif %}> 🅰🅱 نسخ A/B بـ hooks مختلفين</label>
+  </div>
+  <label>🎵 الموسيقى</label>
+  <select name="opt_music">
+    <option value="none" {% if j.opts.music=='none' %}selected{% endif %}>بلا موسيقى</option>
+    {% if music %}<option value="random" {% if j.opts.music=='random' %}selected{% endif %}>عشوائي</option>{% endif %}
+    {% for m in music %}<option value="{{m}}" {% if j.opts.music==m %}selected{% endif %}>{{m}}</option>{% endfor %}
+  </select>
+  <label>🅰🅱 Hooks بديلة <span class="hint">(كيتبدلو بالجملة الأولى فالنسخ B و C)</span></label>
+  {% for h in (j.plan.hooks or []) + ['', ''] %}{% if loop.index <= 2 %}<input type="text" name="hook" value="{{h}}" placeholder="hook بديل {{loop.index}}" style="margin-bottom:6px">{% endif %}{% endfor %}
 
   <h3 style="margin-top:18px"><span class="title-ico">🖼</span>النص ديال تصاور الإعلانات</h3>
   <div class="grid2">

@@ -116,6 +116,9 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000;display:bloc
 .disk.low .bar i{background:var(--bad)}
 .photo-row{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
 .pthumb{width:120px;height:120px;object-fit:contain;border-radius:12px;border:1px solid var(--line);background:var(--soft);display:block}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:600px){.opts{grid-template-columns:1fr}}
+.opts .chk{margin-top:0}
 details summary{cursor:pointer}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-1px}
 @keyframes s{to{transform:rotate(360deg)}}

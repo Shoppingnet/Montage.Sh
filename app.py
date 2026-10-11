@@ -60,11 +60,41 @@ def init_db():
             voice TEXT, auto_approve INTEGER, make_images INTEGER, status TEXT, step TEXT, error TEXT,
             blur REAL, enhanced TEXT, plan TEXT, plan_prev TEXT, pending TEXT,
             img_status TEXT DEFAULT '', img_error TEXT, created REAL, updated REAL)""")
+        try:
+            c.execute("ALTER TABLE jobs ADD COLUMN opts TEXT DEFAULT '{}'")
+        except sqlite3.OperationalError:
+            pass
         # إلا طفا السيرفر وسط الخدمة، نرجعو الخدمات للانتظار
         c.execute("UPDATE jobs SET status='queued' WHERE status='analyzing'")
         c.execute("UPDATE jobs SET status='edit_queued' WHERE status='editing'")
         c.execute("UPDATE jobs SET status='approved' WHERE status='rendering'")
         c.execute("UPDATE jobs SET img_status='queued' WHERE img_status='working'")
+
+
+MUSIC = DATA / "music"
+MUSIC.mkdir(parents=True, exist_ok=True)
+MUSIC_EXT = {".mp3", ".m4a", ".aac", ".wav", ".ogg"}
+# الاختيارات ديال كل فيديو: ترجمة مكتوبة، موسيقى (none / random / سمية الملف)، مقاسات، نسخ A/B
+DEFAULT_OPTS = {"subs": 1, "music": "none", "sizes": 0, "ab": 0}
+
+
+def music_files():
+    return sorted(p.name for p in MUSIC.iterdir() if p.suffix.lower() in MUSIC_EXT)
+
+
+def pick_music(choice):
+    files = music_files()
+    if choice == "random" and files:
+        import random
+        return MUSIC / random.choice(files)
+    if choice in files:
+        return MUSIC / choice
+    return None
+
+
+def opts_from_form(form):
+    return {"subs": 1 if form.get("opt_subs") else 0, "music": form.get("opt_music") or "none",
+            "sizes": 1 if form.get("opt_sizes") else 0, "ab": 1 if form.get("opt_ab") else 0}
 
 
 def get(job_id):
@@ -74,6 +104,7 @@ def get(job_id):
         raise HTTPException(404, "ماكايناش")
     j = dict(r)
     j["plan"] = json.loads(j["plan"]) if j["plan"] else None
+    j["opts"] = {**DEFAULT_OPTS, **json.loads(j.get("opts") or "{}")}
     return j
 
 
@@ -167,18 +198,27 @@ def stage_edit(job_id):
 def stage_render(job_id):
     j = get(job_id)
     d = jdir(job_id)
-    plan = j["plan"]
-    update(job_id, step="كيقص ويسرّع")
-    edited = d / "edited.mp4"
-    P.render_edit(work_video(job_id), plan, edited)
-    update(job_id, step="كيصاوب التعليق الصوتي")
+    plan, o = j["plan"], j["opts"]
     work = d / "voice"
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir()
-    voice, placed, total = P.build_voice_track(plan, j["voice"], P.duration(edited), work)
-    update(job_id, step="كيركّب الفيديو النهائي")
-    P.final_mix(edited, voice, plan, total, d / "final.mp4")
+    for old in d.glob("final*.mp4"):
+        old.unlink()
+    music = pick_music(o["music"])
+    update(job_id, step="كيصاوب التعليق والمونتاج")
+    placed, total = P.render_final(work_video(job_id), plan, j["voice"], work, d / "final.mp4",
+                                   subs=bool(o["subs"]), music=music)
     P.write_srt(placed, d / "final.srt")
+    if o["ab"] and plan.get("hooks") and plan["segments"]:
+        for k, hook in zip("bc", plan["hooks"]):
+            update(job_id, step=f"كيصاوب النسخة {k.upper()} (hook آخر)")
+            alt = json.loads(json.dumps(plan))
+            alt["segments"][0]["text"] = hook
+            P.render_final(work_video(job_id), alt, j["voice"], work, d / f"final_{k}.mp4",
+                           subs=bool(o["subs"]), music=music)
+    if o["sizes"]:
+        update(job_id, step="كيصاوب المقاسات الأخرى")
+        P.make_sizes(d / "final.mp4", d)
     update(job_id, status="done", step="", error="")
 
 
@@ -294,14 +334,16 @@ def index(request: Request, batch: str = "", status: str = ""):
             "FROM jobs GROUP BY batch ORDER BY t DESC LIMIT 15")]
     return T.TemplateResponse(request, "index.html", {
         "jobs": list_jobs(batch or None, status or None), "voices": voices(), "counts": counts,
-        "batches": batches, "batch": batch, "status": status, "disk": disk_info()})
+        "batches": batches, "batch": batch, "status": status, "disk": disk_info(), "music": music_files()})
 
 
 @app.post("/submit")
 async def submit(links_text: str = Form(""), product_info: str = Form(""), instruction: str = Form(""),
                  voice: str = Form(""), auto_approve: str = Form(""), make_images: str = Form(""),
                  links_file: UploadFile | None = File(None), videos: list[UploadFile] = File(default=[]),
-                 product_photo_file: UploadFile | None = File(None)):
+                 product_photo_file: UploadFile | None = File(None), opt_subs: str = Form(""),
+                 opt_music: str = Form("none"), opt_sizes: str = Form(""), opt_ab: str = Form(""),
+                 merge: str = Form("")):
     batch = time.strftime("%m%d-%H%M") + "-" + uuid.uuid4().hex[:4]
     up = DATA / "uploads" / batch
     up.mkdir(parents=True, exist_ok=True)
@@ -337,14 +379,26 @@ async def submit(links_text: str = Form(""), product_info: str = Form(""), instr
             errors.append(f"{url}: {e}")
     if not items:
         raise HTTPException(400, "ماكاين حتى فيديو. " + " | ".join(errors))
+    if merge and len(items) > 1:
+        # المونتاج: كنجمعو الفيديوهات كاملين ففيديو واحد (خاصهم يكونو محليين)
+        paths = []
+        for name, src in items:
+            kind, _, val = src.partition(":")
+            if kind != "local":
+                d0 = up / f"dl_{len(paths)}"
+                val = str(P.download(src, d0))
+            paths.append(val)
+        items = [(f"مونتاج {len(paths)} فيديوهات", "merge:" + "|".join(paths))]
     voice = voice or voices()[0][1]
     now = time.time()
     with db() as c:
         for i, (name, src) in enumerate(items):
             c.execute("INSERT INTO jobs(id,batch,name,source,product_info,instruction,voice,auto_approve,"
-                      "make_images,status,step,img_status,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                      "make_images,status,step,img_status,created,updated,opts) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                       (uuid.uuid4().hex[:10], batch, name, src, product_info, instruction, voice,
-                       1 if auto_approve else 0, 1 if make_images else 0, "queued", "", "", now + i * 1e-3, now))
+                       1 if auto_approve else 0, 1 if make_images else 0, "queued", "", "", now + i * 1e-3, now,
+                       json.dumps({"subs": 1 if opt_subs else 0, "music": opt_music or "none",
+                                   "sizes": 1 if opt_sizes else 0, "ab": 1 if opt_ab else 0})))
     return RedirectResponse(f"/?batch={batch}", status_code=303)
 
 
@@ -356,7 +410,10 @@ def job_page(request: Request, job_id: str):
     return T.TemplateResponse(request, "job.html", {
         "j": j, "voices": voices(), "ads": ads,
         "has_work": bool(list(d.glob("source.*"))), "has_final": (d / "final.mp4").exists(),
-        "photo": product_photo(job_id), "own_photo": (d / "product.jpg").exists()})
+        "photo": product_photo(job_id), "own_photo": (d / "product.jpg").exists(),
+        "music": music_files(),
+        "extras": [n for n in ("final_b.mp4", "final_c.mp4", "final_9x16.mp4", "final_1x1.mp4", "final_4x5.mp4")
+                   if (d / n).exists()]})
 
 
 def _floats(xs):
@@ -394,7 +451,9 @@ async def save(request: Request, job_id: str):
                       for t in _floats(x for x in (form.get("frames") or "").replace("،", ",").split(",") if x.strip())]
     plan = P.normalize_plan(plan, P.duration(work_video(job_id)))
     action = form.get("action", "save")
-    fields = {"plan": plan, "plan_prev": j["plan"], "voice": form.get("voice") or j["voice"]}
+    fields = {"plan": plan, "plan_prev": j["plan"], "voice": form.get("voice") or j["voice"],
+              "opts": json.dumps(opts_from_form(form))}
+    plan["hooks"] = [h.strip() for h in form.getlist("hook") if h.strip()][:2]
     if action == "approve":
         fields["status"] = "approved"
     if action == "images" or (action == "approve" and form.get("with_images")):
@@ -458,7 +517,19 @@ def instruct_batch(batch: str, instruction: str = Form(...)):
     return RedirectResponse(f"/?batch={batch}", status_code=303)
 
 
-ALLOWED = {"final.mp4", "final.srt", "edited.mp4", "enhanced.mp4", "ads.zip"}
+ALLOWED = {"final.mp4", "final.srt", "edited.mp4", "enhanced.mp4", "ads.zip", "final_b.mp4", "final_c.mp4",
+           "final_9x16.mp4", "final_1x1.mp4", "final_4x5.mp4"}
+
+
+@app.post("/music")
+async def music_upload(files: list[UploadFile] = File(default=[]), remove: str = Form("")):
+    if remove:
+        (MUSIC / Path(remove).name).unlink(missing_ok=True)
+    for f in files or []:
+        if f and f.filename and Path(f.filename).suffix.lower() in MUSIC_EXT:
+            with open(MUSIC / Path(f.filename).name, "wb") as out:
+                shutil.copyfileobj(f.file, out)
+    return RedirectResponse("/#music", status_code=303)
 
 
 @app.post("/job/{job_id}/photo")
