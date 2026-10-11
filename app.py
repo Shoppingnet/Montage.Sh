@@ -64,6 +64,15 @@ def init_db():
             c.execute("ALTER TABLE jobs ADD COLUMN opts TEXT DEFAULT '{}'")
         except sqlite3.OperationalError:
             pass
+        try:
+            c.execute("ALTER TABLE jobs ADD COLUMN tries INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+        # فيديو كان كيتصاوب ملي طفات الخدمة: كنعاودوه، ولكن إلا وقع هادشي جوج مرات = هو اللي كيطيّح السيرفر، نوقفوه
+        c.execute("UPDATE jobs SET tries=COALESCE(tries,0)+1 WHERE status IN ('analyzing','editing','rendering')")
+        c.execute("UPDATE jobs SET status='error', step='', error='هاد الفيديو طيّح الخدمة جوج مرات (غالبا طويل بزاف"
+                  " على هاد السيرفر). قصّو ولا جرب فيديو أقصر.' WHERE status IN ('analyzing','editing','rendering')"
+                  " AND tries>=2")
         # إلا طفا السيرفر وسط الخدمة، نرجعو الخدمات للانتظار
         c.execute("UPDATE jobs SET status='queued' WHERE status='analyzing'")
         c.execute("UPDATE jobs SET status='edit_queued' WHERE status='editing'")
