@@ -94,6 +94,50 @@ def best_frames(video, count=2):
     return picked
 
 
+def frames_at(video, frames):
+    """كياخد اللقطات فالتوقيتات اللي ختار Gemini (أوضح وحدة فـ ±0.4 ثانية)، وكيقطع على المنتوج."""
+    import cv2
+    cap = cv2.VideoCapture(str(video))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 25
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
+    picked = []
+    for fr in frames:
+        best = None
+        for dt in (-0.4, -0.2, 0, 0.2, 0.4):
+            idx = min(total - 1, max(0, int((fr["t"] + dt) * fps)))
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ok, frame = cap.read()
+            if not ok:
+                continue
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            sharp = cv2.Laplacian(gray, cv2.CV_64F).var() * (0.3 if gray.mean() < 40 else 1.0)
+            if best is None or sharp > best[0]:
+                best = (sharp, frame)
+        if best is None:
+            continue
+        img = Image.fromarray(cv2.cvtColor(best[1], cv2.COLOR_BGR2RGB))
+        picked.append(crop_product(img, fr.get("box")))
+    cap.release()
+    return picked
+
+
+def crop_product(img: Image.Image, box):
+    """كيقطع على المنتوج مع هامش، باش يبان كبير فالتصويرة."""
+    if not box:
+        return img
+    W, H = img.size
+    y0, x0, y1, x1 = box[0] * H / 1000, box[1] * W / 1000, box[2] * H / 1000, box[3] * W / 1000
+    bw, bh = x1 - x0, y1 - y0
+    m = 0.18 * max(bw, bh)
+    # ماكنقطعوش صغير بزاف باش ماتولّيش الصورة مضببة
+    side_w, side_h = max(bw + 2 * m, W * 0.3), max(bh + 2 * m, H * 0.3)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    l, t = max(0, cx - side_w / 2), max(0, cy - side_h / 2)
+    r, b = min(W, l + side_w), min(H, t + side_h)
+    l, t = max(0, r - side_w), max(0, b - side_h)
+    return img.crop((int(l), int(t), int(r), int(b)))
+
+
 def ai_polish(frame: Image.Image, product, out_dir: Path, idx):
     """اختياري: Gemini Image كيحسن اللقطة لصورة منتوج احترافية. إلا فشل كنرجعو اللقطة الأصلية."""
     if os.getenv("AD_AI_POLISH", "0") != "1" or os.getenv("MOCK") == "1":
@@ -200,9 +244,11 @@ def compose(frame: Image.Image, size, ad):
     return canvas
 
 
-def make_ad_images(video: Path, ad: dict, out_dir: Path, product=""):
+def make_ad_images(video: Path, ad: dict, out_dir: Path, product="", picks=None):
     out_dir.mkdir(parents=True, exist_ok=True)
-    frames = best_frames(video, int(os.getenv("AD_FRAMES", "2")))
+    frames = frames_at(video, picks) if picks else []
+    if not frames:
+        frames = best_frames(video, int(os.getenv("AD_FRAMES", "2")))
     files = []
     for i, fr in enumerate(frames, 1):
         fr = ai_polish(fr, product or ad.get("headline", ""), out_dir, i)

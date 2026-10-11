@@ -88,6 +88,8 @@
     <div><label>الشارة</label><input type="text" name="ad_badge" value="{{ j.plan.ad.badge }}"></div>
   </div>
 
+  <label>لقطات التصاور <span class="hint">(بالثواني، مفصولين بفاصلة — مثلا: 3.5, 8. كليكي هنا باش تشوف اللقطة)</span></label>
+  <input type="text" name="frames" value="{{ (j.plan.frames or [])|map(attribute='t')|join(', ') }}" placeholder="خليها خاوية = يختار بوحدو" onfocus="seek(this.value.split(',')[0])">
   <label class="chk"><input type="checkbox" name="with_images" value="1" {% if j.make_images and j.img_status != 'done' %}checked{% endif %}> صاوب التصاور مع الفيديو</label>
   <div class="row" style="margin-top:14px">
     <button class="btn primary lg" name="action" value="approve">✓ قبل وصاوب الفيديو</button>

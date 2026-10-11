@@ -163,7 +163,8 @@ def stage_images(job_id):
     j = get(job_id)
     out = jdir(job_id) / "ads"
     shutil.rmtree(out, ignore_errors=True)
-    ad_images.make_ad_images(work_video(job_id), j["plan"]["ad"], out, j["plan"].get("product", ""))
+    ad_images.make_ad_images(work_video(job_id), j["plan"]["ad"], out, j["plan"].get("product", ""),
+                             j["plan"].get("frames"))
     update(job_id, img_status="done", img_error="")
 
 
@@ -337,6 +338,10 @@ async def save(request: Request, job_id: str):
     plan["speed"] = form.get("speed") or 1.0
     plan["orig_volume"] = form.get("orig_volume") or 0.15
     plan["ad"] = {k: form.get(f"ad_{k}", "") for k in ("headline", "price", "cta", "badge")}
+    # لقطات التصاور: إلا ما تبدلش التوقيت كنخليو المربع ديال المنتوج اللي لقا Gemini
+    old = {f["t"]: f.get("box") for f in (j["plan"] or {}).get("frames") or []}
+    plan["frames"] = [{"t": t, "box": old.get(round(t, 2))}
+                      for t in _floats(x for x in (form.get("frames") or "").replace("،", ",").split(",") if x.strip())]
     plan = P.normalize_plan(plan, P.duration(work_video(job_id)))
     action = form.get("action", "save")
     fields = {"plan": plan, "plan_prev": j["plan"], "voice": form.get("voice") or j["voice"]}

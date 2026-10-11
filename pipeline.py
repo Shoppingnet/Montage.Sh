@@ -190,10 +190,15 @@ PLAN_SCHEMA_TEXT = """
   "segments": [
     {"start": 0.0, "end": 3.0, "scene": "شنو كيبان فاللقطة", "text": "الجملة بالدارجة"}
   ],
+  "frames": [{"t": 4.2, "box": [ymin, xmin, ymax, xmax]}],  // 2 حتى 3 لقطات للتصاور الإعلانية (شوف القواعد التحت)
   "ad": {"headline": "عنوان قصير وقوي للتصويرة (4 حتى 7 كلمات)", "price": "الثمن بالأرقام مثلا 199 درهم، ولا خاوي إلا ماكانش", "cta": "اطلب دابا", "badge": "الخلاص عند الاستلام"},
   "notes": "شرح قصير بالدارجة لشنو تبدل"
 }
-- جميع التوقيتات ديال segments و cuts كتكون على التوقيت ديال الفيديو الأصلي (قبل القص والتسريع).
+- جميع التوقيتات ديال segments و cuts و frames كتكون على التوقيت ديال الفيديو الأصلي (قبل القص والتسريع).
+- frames: ختار اللحظات فين المنتوج باين كامل، كبير، واضح وماشي مضبب، وماكاينش شي حاجة مغطياه
+  (ماشي لقطة فيها غير شخص كيستعمل المنتوج من بعيد، وماشي لقطة كحلة ولا فيها انتقال).
+  ختار لقطات مختلفة (زوايا ولا ألوان مختلفة إلا كانت). box هو المربع اللي فيه المنتوج فداك اللقطة،
+  بالأرقام من 0 حتى 1000 بهاد الترتيب: [ymin, xmin, ymax, xmax].
 """
 
 SCRIPT_RULES = """
@@ -242,6 +247,21 @@ def normalize_plan(plan, dur):
             segs.append({"start": round(st, 2), "end": round(en, 2),
                          "scene": s.get("scene", ""), "text": s["text"].strip()})
     plan["segments"] = sorted(segs, key=lambda x: x["start"])
+    frames = []
+    for fr in plan.get("frames") or []:
+        try:
+            t = min(max(0.0, float(fr["t"])), max(0.0, dur - 0.05))
+        except (KeyError, TypeError, ValueError):
+            continue
+        box = fr.get("box")
+        try:
+            box = [min(1000.0, max(0.0, float(v))) for v in box]
+            if len(box) != 4 or box[2] - box[0] < 20 or box[3] - box[1] < 20:
+                box = None
+        except (TypeError, ValueError):
+            box = None
+        frames.append({"t": round(t, 2), "box": box})
+    plan["frames"] = frames[:4]
     ad = plan.get("ad") or {}
     plan["ad"] = {"headline": ad.get("headline") or plan["product"], "price": ad.get("price") or "",
                   "cta": ad.get("cta") or "اطلب دابا", "badge": ad.get("badge") or "الخلاص عند الاستلام"}
@@ -257,6 +277,7 @@ def analyze(video: Path, product_info="", instruction=""):
                  "text": f"هادي الجملة رقم {i+1} على المنتوج"} for i in range(n)]
         return normalize_plan({"product": "منتوج", "cuts": [], "speed": 1.0, "segments": segs,
                                "ad": {"headline": "كرسي مريح للظهر بجودة عالية", "price": "199 درهم"},
+                               "frames": [{"t": dur * 0.3, "box": [200, 250, 800, 750]}, {"t": dur * 0.7, "box": None}],
                                "notes": "تجربة"}, dur)
     from google.genai import types
     client = _gemini_client()
@@ -308,6 +329,7 @@ def apply_instruction(plan, instruction, dur, product_info=""):
 - "سرّع/بطّأ" ← بدل speed (سرّع شوية = 1.15، سرّع = 1.25، سرّع بزاف = 1.5).
 - "بدل/صلح/زيد الجملة..." ← بدل segments. إلا قال "اكتب السكريبت من جديد" عاود كتبو كامل.
 - "نقص/حيد صوت الفيديو" ← orig_volume.
+- "بدل التصويرة / خود اللقطة ديال الثانية X" ← بدل frames (وحط box ديال المنتوج إلا كان باين فـ scene).
 - إلا قصيتي شي جزء، حيد ولا عدّل الجمل اللي كانت فيه.
 - خلي كلشي آخر كيف ما هو. ماتبدلش حوايج ماطلبهاش.
 {SCRIPT_RULES}
