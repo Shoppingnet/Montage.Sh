@@ -11,9 +11,9 @@ if [ "$1" = "--remove" ]; then
 fi
 cd "$APP_DIR" && git fetch -q || exit 0
 [ "$(git rev-parse HEAD)" = "$(git rev-parse '@{u}')" ] && exit 0
-# ماكنعاودوش نشعلو الخدمة وسط شي فيديو كيتصاوب، كنتسناو الدورة الجاية
+# ماكنعاودوش نشعلو الخدمة وسط شي فيديو كيتصاوب، كنتسناو الدورة الجاية (إلا ما تحرك حتى شي حاجة 30 دقيقة = مبلوكي، كنحدثو)
 DB=$(grep -s '^DATA_DIR=' .env | cut -d= -f2); DB="${DB:-./data}/jobs.db"
-if [ -f "$DB" ] && python3 -c "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);sys.exit(0 if c.execute(\"SELECT COUNT(*) FROM jobs WHERE status IN ('analyzing','editing','rendering') OR img_status='working'\").fetchone()[0] else 1)" "$DB"; then
+if [ -f "$DB" ] && python3 -c "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);sys.exit(0 if c.execute(\"SELECT COUNT(*) FROM jobs WHERE (status IN ('analyzing','editing','rendering') OR img_status='working') AND updated > strftime('%s','now') - 1800\").fetchone()[0] else 1)" "$DB"; then
   echo "$(date '+%F %T') كاين تحديث ولكن شي فيديو كيتصاوب دابا، غنتسناو"; exit 0
 fi
 echo "$(date '+%F %T') كاين تحديث: $(git log -1 --format=%s '@{u}')"

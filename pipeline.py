@@ -18,7 +18,11 @@ VIDEO_EXT = {".mp4", ".mov", ".m4v", ".webm", ".mkv", ".avi", ".3gp", ".mpeg", "
 
 # ───────────────────────── أدوات عامة ─────────────────────────
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    # حد أقصى للوقت: إلا تبلوكا FFmpeg كتطلع غلطة بلاصة ما يبقا الفيديو "كيتصاوب" ديما
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=int(os.getenv("FFMPEG_TIMEOUT", "2400")))
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("FFmpeg طوّل بزاف وتوقف (الفيديو طويل ولا السيرفر مضغوط). جرب فيديو أقصر.")
     if r.returncode != 0:
         raise RuntimeError(f"ffmpeg error: {r.stderr[-800:]}")
     return r.stdout
@@ -379,19 +383,19 @@ def render_edit(src: Path, plan, out: Path):
     if len(ranges) == 1 and ranges[0] == (0.0, dur) and abs(speed - 1) < 1e-3:
         shutil.copy(src, out)
         return
-    parts, labels = [], []
-    for i, (s, e) in enumerate(ranges):
-        parts.append(f"[0:v]trim={s:.3f}:{e:.3f},setpts=PTS-STARTPTS[v{i}]")
-        labels.append(f"[v{i}]")
-        if audio:
-            parts.append(f"[0:a]atrim={s:.3f}:{e:.3f},asetpts=PTS-STARTPTS[a{i}]")
-            labels.append(f"[a{i}]")
+    # كل جزء كيتقرا كـ input بوحدو (-ss/-t): FFmpeg مكيخزنش التصاور فالذاكرة.
+    # (trim على نفس [0:v] بزاف ديال المرات كان كيخزن الفيديو كامل وكيغرق السيرفر)
+    cmd, labels = ["ffmpeg", "-y"], []
+    for s_, e_ in ranges:
+        cmd += ["-ss", f"{s_:.3f}", "-t", f"{e_ - s_:.3f}", "-i", str(src)]
+    for i in range(len(ranges)):
+        labels.append(f"[{i}:v]" + (f"[{i}:a]" if audio else ""))
     n = len(ranges)
-    parts.append("".join(labels) + f"concat=n={n}:v=1:a={1 if audio else 0}[vc]" + ("[ac]" if audio else ""))
+    parts = ["".join(labels) + f"concat=n={n}:v=1:a={1 if audio else 0}[vc]" + ("[ac]" if audio else "")]
     parts.append(f"[vc]setpts=PTS/{speed:.4f}[vo]")
     if audio:
         parts.append(f"[ac]{_atempo_chain(speed)}[ao]")
-    cmd = ["ffmpeg", "-y", "-i", str(src), "-filter_complex", ";".join(parts), "-map", "[vo]"]
+    cmd += ["-filter_complex", ";".join(parts), "-map", "[vo]"]
     cmd += ["-map", "[ao]", "-c:a", "aac", "-b:a", "160k"] if audio else ["-an"]
     run(cmd + ["-c:v", "libx264", "-crf", "19", "-preset", PRESET, "-pix_fmt", "yuv420p", str(out)])
 
