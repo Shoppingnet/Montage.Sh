@@ -524,6 +524,31 @@ def words_from_alignment(chars, starts, ends):
     return words
 
 
+_PARTICLES = {"و", "ب", "ف", "ل", "ك", "الـ", "ال", "لا", "ما", "من", "في", "على", "ديال", "د"}
+
+
+def merge_particles(wt):
+    """أدوات قصار (و، ب، ف، الـ...) كتلصق مع الكلمة اللي موراها باش ماتبانش بوحدها فالترجمة."""
+    out = []
+    i = 0
+    while i < len(wt):
+        w, a, b = wt[i]
+        if (w in _PARTICLES or len(w) == 1) and i + 1 < len(wt):
+            w2, _, b2 = wt[i + 1]
+            out.append((w + " " + w2, a, b2))
+            i += 2
+        else:
+            out.append((w, a, b))
+            i += 1
+    return out
+
+
+def _display(w):
+    """كلمة لاتينية وسط الدارجة كتبان بالاتجاه الصحيح (ماشي معكوسة)."""
+    w = w.replace("{", "(").replace("}", ")")
+    return re.sub(r"[A-Za-z][A-Za-z0-9'.-]*", lambda m: "\u2066" + m.group(0) + "\u2069", w)
+
+
 def word_times(clip_mp3: Path, text, start, end, tempo=1.0):
     """وقت كل كلمة فالفيديو النهائي. إلا ماكانش عندنا alignment (Gemini TTS / MOCK)، كنقسمو على طول الكلمات."""
     words = text.split()
@@ -648,21 +673,23 @@ def write_ass(placed, path: Path, w: int, h: int):
     n = int(os.getenv("SUBS_WORDS", "3"))
     hi = os.getenv("SUBS_HIGHLIGHT", "1") == "1"
     for p in placed:
-        wt = word_times(p.get("raw"), p["text"], p["start"], p["end"], p.get("tempo", 1.0))
+        wt = merge_particles(word_times(p.get("raw"), p["text"], p["start"], p["end"], p.get("tempo", 1.0)))
         if not wt:
             continue
+        # كل كلمة كتبقا باينة حتى تبدا اللي موراها (بلا فراغات)
+        wt = [(w, a, (wt[i + 1][1] if i + 1 < len(wt) else b)) for i, (w, a, b) in enumerate(wt)]
         groups = [wt[i:i + n] for i in range(0, len(wt), n)]
         for g in groups:
             g_start, g_end = g[0][1], g[-1][2]
             if not hi:
-                txt = " ".join(w for w, _, _ in g).replace("{", "(").replace("}", ")")
+                txt = " ".join(_display(w) for w, _, _ in g)
                 lines.append(f"Dialogue: 0,{ts(g_start)},{ts(g_end)},D,,0,0,0,,{txt}")
                 continue
             # نفس المجموعة كتبان كاملة، والكلمة اللي كتنطق دابا كتولي صفرا وكبيرة شوية
             for k, (w, a, b) in enumerate(g):
                 parts = []
                 for j, (w2, _, _) in enumerate(g):
-                    w2 = w2.replace("{", "(").replace("}", ")")
+                    w2 = _display(w2)
                     parts.append(f"{{\\c&H0000D7FF&\\fscx108\\fscy108}}{w2}{{\\r}}" if j == k else w2)
                 e = b if k < len(g) - 1 else g_end
                 lines.append(f"Dialogue: 0,{ts(a)},{ts(max(e, a + 0.05))},D,,0,0,0,,{' '.join(parts)}")
