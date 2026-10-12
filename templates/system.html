@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}السيرفر{% endblock %}
+{% block body %}
+<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">🖥 حالة السيرفر</h2><a class="btn sm" href="/system">🔄 حدّث</a></div>
+<div class="grid2">
+  <div class="card">
+    {% macro bar(label, pct, txt, warn) %}
+    <div style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><b>{{label}}</b><span class="small {% if warn %}" style="color:var(--bad);font-weight:700{% endif %}">{{txt}}</span></div>
+    <div class="prog" style="max-width:none;height:9px"><i style="width:{{pct}}%;{% if warn %}background:var(--bad){% endif %}"></i></div></div>
+    {% endmacro %}
+    {{ bar("⚙️ CPU", s.cpu or 0, (s.cpu|string if s.cpu is not none else '?') ~ "% · " ~ s.cores ~ " نواة · load " ~ s.load[0], (s.cpu or 0) > 90 and s.load[0] > s.cores * 2) }}
+    {{ bar("🧠 الذاكرة", s.mem_pct, s.mem_used_mb ~ " / " ~ s.mem_total_mb ~ " MB", s.mem_pct > 90) }}
+    {{ bar("💽 Swap", s.swap_pct, s.swap_used_mb ~ " / " ~ s.swap_total_mb ~ " MB", s.swap_pct > 50) }}
+    <div class="small muted">السيرفر خدام من {{s.uptime_h}} ساعة · load (1/5/15 دقيقة): {{s.load|join(' / ')}}</div>
+    {% if s.swap_pct > 50 %}<div class="note" style="margin-top:10px">⚠ الـ swap عامر: الذاكرة ماكافياش، هادشي اللي كيبطّي السيرفر (الديسك كيخدم بلاصة الذاكرة).</div>{% endif %}
+  </div>
+  <div class="card">
+    <h3><span class="title-ico">🎬</span>الخدمات اللي خدامة دابا ({{active|length}})</h3>
+    {% if not active %}<p class="muted small">والو خدام دابا.</p>{% endif %}
+    <table class="jobs">{% for j in active %}<tr><td><a href="/job/{{j.id}}"><b>{{j.name}}</b></a><div class="small muted">{{STATUS_AR.get(j.status,j.status)}} · {{j.step}} · {{ ((now - j.updated)/60)|int }} دقيقة{% if j.owner %} · {{j.owner}}{% endif %}</div></td></tr>{% endfor %}</table>
+    {% if s.ffmpeg %}<div class="small muted" style="margin-top:8px">FFmpeg خدام: {{s.ffmpeg|length}} ({% for f in s.ffmpeg %}{{f.cpu}}% CPU، {{f.rss_mb}} MB{% if not loop.last %} · {% endif %}{% endfor %})</div>{% endif %}
+  </div>
+</div>
+<div class="card">
+  <h3><span class="title-ico">📋</span>البروسيسات اللي كياكلو CPU</h3>
+  <table class="jobs small">
+    <tr class="seg-head"><th>البرنامج</th><th>CPU</th><th>RAM</th><th>مدة</th></tr>
+    {% for p in s.procs %}<tr><td><b>{{p.name}}</b> <span class="muted">nice {{p.nice}}</span><div class="muted" style="direction:ltr;text-align:right;font-family:monospace;font-size:11px;overflow-wrap:anywhere">{{p.cmd[:110]}}</div></td>
+    <td>{{p.cpu}}%</td><td>{{p.rss_mb}} MB</td><td>{{ (p.age/60)|int }} د</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

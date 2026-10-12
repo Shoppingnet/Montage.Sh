@@ -1,7 +1,6 @@
 """نظام الدبلجة بالدارجة — واجهة الويب + الخدامة اللي كيعالجو الفيديوهات فالخلفية."""
 import json
 import os
-import secrets
 import shutil
 import sqlite3
 import threading
@@ -16,12 +15,13 @@ load_dotenv()
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse  # noqa: E402
-from fastapi.security import HTTPBasic, HTTPBasicCredentials  # noqa: E402
 from fastapi.templating import Jinja2Templates  # noqa: E402
 
 import ad_images  # noqa: E402
 import landing as L  # noqa: E402
 import pipeline as P  # noqa: E402
+import sysinfo  # noqa: E402
+import users as U  # noqa: E402
 
 BASE = Path(__file__).parent
 DATA = Path(os.getenv("DATA_DIR", BASE / "data"))
@@ -65,7 +65,7 @@ def init_db():
             c.execute("ALTER TABLE jobs ADD COLUMN opts TEXT DEFAULT '{}'")
         except sqlite3.OperationalError:
             pass
-        for col in ("tries INTEGER DEFAULT 0", "priority INTEGER DEFAULT 0"):
+        for col in ("tries INTEGER DEFAULT 0", "priority INTEGER DEFAULT 0", "owner TEXT DEFAULT ''"):
             try:
                 c.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -340,20 +340,99 @@ def worker(stages):
 
 
 # ───────────────────────── الويب ─────────────────────────
-security = HTTPBasic()
-
-
-def auth(cred: HTTPBasicCredentials = Depends(security)):
-    # bytes باش مايطيحش ملي تكون كلمة السر فيها حروف عربية
-    ok_u = secrets.compare_digest(cred.username.encode(), os.getenv("APP_USER", "admin").encode())
-    ok_p = secrets.compare_digest(cred.password.encode(), os.getenv("APP_PASSWORD", "change-me").encode())
-    if not (ok_u and ok_p):
-        raise HTTPException(401, headers={"WWW-Authenticate": "Basic"})
-
-
-app = FastAPI(dependencies=[Depends(auth)])
+app = FastAPI()
 T = Jinja2Templates(directory=str(BASE / "templates"))
-T.env.globals.update(STATUS_AR=STATUS_AR, PLACEMENTS=ad_images.PLACEMENTS)
+T.env.globals.update(STATUS_AR=STATUS_AR, PLACEMENTS=ad_images.PLACEMENTS, ROLES=U.ROLES)
+OPEN_PATHS = ("/login", "/logout", "/p/", "/health")
+
+
+@app.middleware("http")
+async def _auth_mw(request: Request, call_next):
+    """الدخول بالكوكي: كل الصفحات محمية ما عدا الدخول وصفحات الهبوط العمومية."""
+    path = request.url.path
+    if path == "/p" or path.startswith(OPEN_PATHS):
+        return await call_next(request)
+    u = U.user_from_request(request)
+    if not u:
+        if path.startswith("/api/"):
+            return JSONResponse({"error": "login"}, status_code=401)
+        return RedirectResponse(f"/login?next={path}", status_code=303)
+    if u["role"] == "viewer" and request.method == "POST":
+        return JSONResponse({"error": "المشاهد ماكيقدرش يبدل"}, status_code=403)
+    request.state.user = u
+    return await call_next(request)
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
+@app.get("/login")
+def login_page(request: Request, next: str = "/", err: str = ""):
+    return T.TemplateResponse(request, "login.html", {"next": next, "err": err})
+
+
+@app.post("/login")
+def login_post(request: Request, username: str = Form(""), password: str = Form(""), next: str = Form("/")):
+    u = U.login(username, password)
+    if not u:
+        time.sleep(0.5)  # ضد التخمين
+        return T.TemplateResponse(request, "login.html", {"next": next, "err": "السمية ولا الباسورد غالطين"},
+                                  status_code=401)
+    r = RedirectResponse(next if next.startswith("/") else "/", status_code=303)
+    r.set_cookie(U.COOKIE, U.make_token(u["id"]), max_age=U.SESSION_DAYS * 86400, httponly=True, samesite="lax")
+    return r
+
+
+@app.get("/logout")
+def logout():
+    r = RedirectResponse("/login", status_code=303)
+    r.delete_cookie(U.COOKIE)
+    return r
+
+
+@app.get("/team")
+def team(request: Request, u=Depends(U.require_role("admin"))):
+    return T.TemplateResponse(request, "team.html", {"users": U.list_users(), "msg": request.query_params.get("msg", ""),
+                                                      "now_ts": time.time()})
+
+
+@app.post("/team/new")
+def team_new(username: str = Form(""), name: str = Form(""), role: str = Form("staff"), password: str = Form(""),
+             u=Depends(U.require_role("admin"))):
+    U.create_user(username, name, role, password)
+    return RedirectResponse("/team?msg=تزاد", status_code=303)
+
+
+@app.post("/team/{uid}")
+def team_edit(uid: int, action: str = Form(""), role: str = Form(""), password: str = Form(""), name: str = Form(""),
+              u=Depends(U.require_role("admin"))):
+    if action == "toggle":
+        t = U.get_user(uid=uid)
+        if t and t["id"] != u["id"]:
+            U.update_user(uid, active=0 if t["active"] else 1)
+    elif action == "role" and role in U.ROLES and uid != u["id"]:
+        U.update_user(uid, role=role)
+    elif action == "pw" and len(password) >= 4:
+        U.update_user(uid, pw=password)
+    elif action == "name" and name.strip():
+        U.update_user(uid, name=name.strip())
+    return RedirectResponse("/team?msg=تسجل", status_code=303)
+
+
+@app.get("/system")
+def system_page(request: Request, u=Depends(U.require_role("admin"))):
+    with db() as c:
+        active = [dict(r) for r in c.execute(
+            "SELECT id,name,status,step,owner,updated FROM jobs WHERE status IN "
+            "('analyzing','editing','rendering') OR img_status='working' ORDER BY updated")]
+    return T.TemplateResponse(request, "system.html", {"s": sysinfo.snapshot(), "active": active, "now": time.time()})
+
+
+@app.get("/api/system")
+def api_system(u=Depends(U.require_role("admin"))):
+    return JSONResponse(sysinfo.snapshot())
 
 
 app.mount("/p", L.public)  # صفحات الهبوط عمومية (بلا باسورد)
@@ -363,6 +442,7 @@ app.mount("/p", L.public)  # صفحات الهبوط عمومية (بلا باس
 def _start():
     init_db()
     L.init_db()
+    U.init_db()
     threading.Thread(target=_crm_retry_loop, daemon=True).start()
     for _ in range(int(os.getenv("LIGHT_WORKERS", "3"))):
         threading.Thread(target=worker, args=(LIGHT_STAGES,), daemon=True).start()
@@ -370,7 +450,7 @@ def _start():
         threading.Thread(target=worker, args=(HEAVY_STAGES,), daemon=True).start()
 
 
-def list_jobs(batch=None, status=None):
+def list_jobs(batch=None, status=None, owner=None):
     q, args = "SELECT * FROM jobs WHERE 1=1", []
     if batch:
         q += " AND batch=?"
@@ -378,6 +458,9 @@ def list_jobs(batch=None, status=None):
     if status:
         q += " AND status=?"
         args.append(status)
+    if owner:
+        q += " AND owner=?"
+        args.append(owner)
     with db() as c:
         return [dict(r) for r in c.execute(q + " ORDER BY created DESC LIMIT 300", args)]
 
@@ -394,20 +477,21 @@ def disk_info():
 
 
 @app.get("/")
-def index(request: Request, batch: str = "", status: str = ""):
+def index(request: Request, batch: str = "", status: str = "", mine: str = ""):
+    me = request.state.user["username"] if mine else None
     with db() as c:
         counts = {r["status"]: r["n"] for r in c.execute("SELECT status, COUNT(*) n FROM jobs GROUP BY status")}
         batches = [dict(r) for r in c.execute(
             "SELECT batch, MIN(created) t, COUNT(*) n, SUM(status='done') done, SUM(status='review') rev "
             "FROM jobs GROUP BY batch ORDER BY t DESC LIMIT 15")]
     return T.TemplateResponse(request, "index.html", {
-        "jobs": list_jobs(batch or None, status or None), "voices": voices(), "counts": counts, "queue": queue_info(),
-        "PROGRESS": PROGRESS,
+        "jobs": list_jobs(batch or None, status or None, me), "voices": voices(), "counts": counts,
+        "queue": queue_info(), "PROGRESS": PROGRESS, "mine": mine,
         "batches": batches, "batch": batch, "status": status, "disk": disk_info(), "music": music_files()})
 
 
 @app.post("/submit")
-async def submit(links_text: str = Form(""), product_info: str = Form(""), instruction: str = Form(""),
+async def submit(request: Request, links_text: str = Form(""), product_info: str = Form(""), instruction: str = Form(""),
                  voice: str = Form(""), auto_approve: str = Form(""), make_images: str = Form(""),
                  links_file: UploadFile | None = File(None), videos: list[UploadFile] = File(default=[]),
                  product_photo_file: UploadFile | None = File(None), opt_subs: str = Form(""),
@@ -463,12 +547,13 @@ async def submit(links_text: str = Form(""), product_info: str = Form(""), instr
     with db() as c:
         for i, (name, src) in enumerate(items):
             c.execute("INSERT INTO jobs(id,batch,name,source,product_info,instruction,voice,auto_approve,"
-                      "make_images,status,step,img_status,created,updated,opts) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                      "make_images,status,step,img_status,created,updated,opts,owner) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                       (uuid.uuid4().hex[:10], batch, name, src, product_info, instruction, voice,
                        1 if auto_approve else 0, 1 if make_images else 0, "queued", "", "", now + i * 1e-3, now,
                        json.dumps({"subs": 1 if opt_subs else 0, "music": opt_music or "none",
                                    "sizes": 1 if opt_sizes else 0, "ab": 1 if opt_ab else 0,
-                                   "mode": mode if mode in ("dub", "captions") else "dub"})))
+                                   "mode": mode if mode in ("dub", "captions") else "dub"}),
+                       request.state.user["username"]))
     return RedirectResponse(f"/?batch={batch}", status_code=303)
 
 
@@ -565,8 +650,10 @@ def reanalyze(job_id: str):
 
 
 @app.post("/job/{job_id}/delete")
-def delete(job_id: str):
+def delete(request: Request, job_id: str):
     j = get(job_id)
+    if not U.can_manage(request.state.user, j.get("owner")):
+        raise HTTPException(403, "غير المدير ولا صاحب الفيديو كيقدر يمسحو")
     shutil.rmtree(JOBS / job_id, ignore_errors=True)
     with db() as c:
         c.execute("DELETE FROM jobs WHERE id=?", (job_id,))
@@ -727,7 +814,8 @@ async def pages_new(request: Request):
         images = P.gen_product_images(ph, content["image_prompts"], _page_dir(slug)) + images
     price = form.get("price") or content.get("price") or ((j["plan"] or {}).get("ad", {}).get("price") if j else "") or ""
     L.save_page(slug, name=name, product_ref=form.get("product_ref") or name, price=price, angle=angle,
-                product_info=info, job_id=job_id, content=content, images=images, published=1)
+                product_info=info, job_id=job_id, content=content, images=images, published=1,
+                owner=request.state.user["username"])
     with L.db() as c:
         c.execute("UPDATE pages SET video=? WHERE slug=?", (video, slug))
     return RedirectResponse(f"/pages/{slug}", status_code=303)
@@ -802,7 +890,10 @@ async def page_photo(slug: str, photo: UploadFile = File(...)):
 
 
 @app.post("/pages/{slug}/delete")
-def page_delete(slug: str):
+def page_delete(request: Request, slug: str):
+    p = L.get_page(slug)
+    if p and not U.can_manage(request.state.user, p.get("owner")):
+        raise HTTPException(403, "غير المدير ولا صاحب الصفحة كيقدر يمسحها")
     L.delete_page(slug)
     shutil.rmtree(L.PAGES / slug, ignore_errors=True)
     return RedirectResponse("/pages", status_code=303)

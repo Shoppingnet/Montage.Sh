@@ -41,6 +41,10 @@ def init_db():
         c.execute("""CREATE TABLE IF NOT EXISTS leads(
             id TEXT PRIMARY KEY, slug TEXT, name TEXT, tel TEXT, city TEXT, adress TEXT, quantity INTEGER,
             price TEXT, crm_status TEXT, crm_error TEXT, created REAL)""")
+        try:
+            c.execute("ALTER TABLE pages ADD COLUMN owner TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
 
 
 def slugify(s):

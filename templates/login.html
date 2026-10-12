@@ -1,0 +1,25 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الدخول — دبلجة الدارجة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#e4572e;--brand-2:#f3a953;--bg:#f6f3ee;--card:#fff;--line:#e8e1d6;--txt:#1d1a16;--muted:#7a7268}
+@media(prefers-color-scheme:dark){:root{--bg:#141210;--card:#1f1b17;--line:#302a24;--txt:#f1ece4;--muted:#a39b90}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--txt);font-family:Cairo,system-ui,sans-serif;padding:16px}
+.box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 22px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.logo{width:56px;height:56px;border-radius:16px;margin:0 auto 10px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;box-shadow:0 6px 16px rgba(228,87,46,.4)}
+.logo svg{width:28px;height:28px}h1{text-align:center;font-size:20px;margin:0 0 2px}.sub{text-align:center;color:var(--muted);font-size:12px;margin:0 0 20px;letter-spacing:.5px}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 5px}
+input{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--txt);font:inherit;font-size:16px}
+input:focus{outline:none;border-color:var(--brand)}
+button{width:100%;margin-top:18px;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
+.err{background:#fde8e4;color:#9b2c13;border-radius:10px;padding:10px;font-size:13px;margin-top:12px;text-align:center}
+</style></head><body>
+<form class="box" method="post" action="/login">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10-6.5a1 1 0 0 0 0-1.72l-10-6.5A1 1 0 0 0 8 5.5z"/></svg></div>
+  <h1>دبلجة الدارجة</h1><p class="sub">MONTAGE.SH · SHOPPING NET</p>
+  <input type="hidden" name="next" value="{{next}}">
+  <label>سمية الدخول</label><input type="text" name="username" autocomplete="username" autofocus required>
+  <label>الباسورد</label><input type="password" name="password" autocomplete="current-password" required>
+  {% if err %}<div class="err">{{err}}</div>{% endif %}
+  <button>دخول</button>
+</form></body></html>

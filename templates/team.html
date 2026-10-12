@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}الفريق{% endblock %}
+{% block body %}
+{% if msg %}<div class="note" style="margin-bottom:14px">✓ {{msg}}</div>{% endif %}
+<div class="grid2">
+<form method="post" action="/team/new" class="card">
+  <h2><span class="title-ico">👤</span>موظف جديد</h2>
+  <div class="grid2">
+    <div><label>سمية الدخول <span class="hint">(حروف لاتينية)</span></label><input type="text" name="username" required pattern="[a-zA-Z0-9._-]+" placeholder="mohamed"></div>
+    <div><label>الاسم</label><input type="text" name="name" placeholder="محمد"></div>
+  </div>
+  <div class="grid2">
+    <div><label>الدور</label><select name="role">{% for k,v in ROLES.items() %}<option value="{{k}}" {% if k=='staff' %}selected{% endif %}>{{v}}</option>{% endfor %}</select></div>
+    <div><label>الباسورد</label><input type="text" name="password" required minlength="4" placeholder="4 حروف على الأقل"></div>
+  </div>
+  <p class="small muted" style="margin:10px 0 0"><b>مدير</b>: كولشي + الفريق والسيرفر · <b>موظف</b>: كيدير فيديوهات وصفحات، كيمسح غير ديالو · <b>مشاهد</b>: كيشوف ويحمّل فقط.</p>
+  <div style="margin-top:14px"><button class="btn primary" style="width:100%">➕ زيد</button></div>
+</form>
+
+<div class="card">
+  <h3><span class="title-ico">👥</span>الفريق ({{users|length}})</h3>
+  <table class="jobs">
+  {% for x in users %}
+    <tr {% if not x.active %}style="opacity:.5"{% endif %}>
+      <td><b>{{x.name}}</b><div class="small muted">{{x.username}} · {% if x.last_login %}آخر دخول {{ ((now_ts - x.last_login)/3600)|round(0)|int }} ساعة{% else %}مادخلش بعد{% endif %}</div>
+        <details style="margin-top:4px"><summary class="small">بدّل</summary>
+          <form method="post" action="/team/{{x.id}}" class="row" style="margin-top:6px"><select name="role" style="flex:1">{% for k,v in ROLES.items() %}<option value="{{k}}" {% if k==x.role %}selected{% endif %}>{{v}}</option>{% endfor %}</select><button class="btn sm" name="action" value="role">الدور</button></form>
+          <form method="post" action="/team/{{x.id}}" class="row" style="margin-top:6px"><input type="text" name="password" placeholder="باسورد جديد" minlength="4" style="flex:1"><button class="btn sm" name="action" value="pw">بدّل</button></form>
+          <form method="post" action="/team/{{x.id}}" style="margin-top:6px"><button class="btn sm {% if x.active %}danger{% endif %}" name="action" value="toggle">{% if x.active %}وقّف الحساب{% else %}رجّع الحساب{% endif %}</button></form>
+        </details></td>
+      <td><span class="badge {% if x.role=='admin' %}b-done{% elif x.role=='viewer' %}{% else %}b-review{% endif %}">{{ROLES[x.role]}}</span></td>
+    </tr>
+  {% endfor %}
+  </table>
+</div>
+</div>
+{% endblock %}
