@@ -857,3 +857,57 @@ def merge_videos(srcs, out: Path):
     parts.append("".join(f"[v{i}][a{i}]" for i in range(len(srcs))) + f"concat=n={len(srcs)}:v=1:a=1[v][a]")
     run(cmd + ["-filter_complex", ";".join(parts), "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-crf", "20",
                "-preset", PRESET, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)])
+
+# ───────────────────────── صفحات الهبوط ─────────────────────────
+LANDING_SCHEMA = """
+رجّع JSON فقط بهاد الشكل:
+{
+  "title": "عنوان الصفحة (hook قوي بالدارجة، 5 حتى 9 كلمات)",
+  "subtitle": "جملة تحت العنوان كتوضح الفائدة الرئيسية",
+  "angle": "زاوية البيع اللي اخترتي (مثلا: الراحة / التوفير / الهدية / الصحة)",
+  "price": "199 درهم", "old_price": "299 درهم ولا خاوي",
+  "cta": "اطلب دابا والخلاص عند الاستلام",
+  "problem": "فقرة قصيرة كتوصف المشكل اللي كيعيشو الزبون",
+  "solution": "فقرة قصيرة كيفاش المنتوج كيحل المشكل",
+  "benefits": [{"icon": "✅", "title": "فائدة", "text": "شرح قصير"}],   // 4 حتى 6
+  "how": ["خطوة 1", "خطوة 2", "خطوة 3"],
+  "social": [{"name": "سمية مغربية", "city": "مدينة", "text": "رأي قصير بالدارجة"}],  // 3
+  "faq": [{"q": "سؤال", "a": "جواب"}],   // 4 حتى 5 (التوصيل، الخلاص، الضمان، الاستعمال...)
+  "urgency": "جملة قصيرة كتحمس (العرض محدود / الكمية قليلة...)",
+  "guarantee": "جملة الضمان / الإرجاع"
+}
+"""
+
+
+def write_landing(product_info, angle="", plan=None, photo=None):
+    """Gemini كيكتب المحتوى ديال صفحة الهبوط بالدارجة بزاوية البيع المختارة."""
+    if MOCK:
+        return {"title": "منتوج زوين كيحل ليك المشكل", "subtitle": "ساهل، سريع، وبثمن مناسب", "angle": angle or "الراحة",
+                "price": "199 درهم", "old_price": "299 درهم", "cta": "اطلب دابا والخلاص عند الاستلام",
+                "problem": "كل نهار كتعاني مع هاد المشكل.", "solution": "هاد المنتوج كيسهل عليك الحياة.",
+                "benefits": [{"icon": "✅", "title": "جودة عالية", "text": "مواد متينة"},
+                             {"icon": "🚚", "title": "توصيل سريع", "text": "24 حتى 48 ساعة"},
+                             {"icon": "💵", "title": "الخلاص عند الاستلام", "text": "ماتخلص حتى توصلك"}],
+                "how": ["اطلب", "كنتصلو بيك", "كتوصلك"],
+                "social": [{"name": "فاطمة", "city": "الدار البيضاء", "text": "زوين بزاف، نصح بيه"}],
+                "faq": [{"q": "شحال التوصيل؟", "a": "فابور فجميع المدن"}],
+                "urgency": "الكمية محدودة", "guarantee": "ضمان الإرجاع 7 أيام"}
+    from google.genai import types
+    from PIL import Image
+    client = _gemini_client()
+    script = ""
+    if plan and plan.get("segments"):
+        script = "\n".join(s["text"] for s in plan["segments"])
+    prompt = f"""نتا كوبيرايتر محترف ديال صفحات الهبوط للتجارة الإلكترونية فالمغرب (الدفع عند الاستلام).
+اكتب محتوى صفحة هبوط بالدارجة المغربية (حروف عربية)، تبيع، قصيرة، وتخدم مزيان فالتلفون.
+معلومات المنتوج: {product_info or "ماكاينش"}
+زاوية البيع المطلوبة: {angle or "ختار أحسن زاوية نتا"}
+{"التعليق ديال الفيديو الإعلاني (خليه متناسق معاه): " + script if script else ""}
+- ماتخترعش مميزات ماكايناش فالمعلومات. إلا ماكانش الثمن، خلي price خاوي.
+- الأرقام بالأرقام. بلا فصحى.
+{LANDING_SCHEMA}"""
+    contents = ([Image.open(photo)] if photo else []) + [prompt]
+    resp = client.models.generate_content(model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"), contents=contents,
+                                          config=types.GenerateContentConfig(response_mime_type="application/json",
+                                                                             temperature=0.8))
+    return _parse_json(resp.text)

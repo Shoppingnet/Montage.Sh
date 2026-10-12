@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ p.content.title or p.name }}</title>
+<meta name="description" content="{{ p.content.subtitle }}">
+<meta property="og:title" content="{{ p.content.title or p.name }}">
+<meta property="og:description" content="{{ p.content.subtitle }}">
+{% if p.images %}<meta property="og:image" content="/p/{{p.slug}}/media/{{p.images[0]}}">{% endif %}
+<style>
+:root{--brand:#e4572e;--brand-2:#f08a3e;--ink:#17140f;--muted:#6f6a62;--line:#ece7df;--soft:#faf7f2;--ok:#21875a}
+*{box-sizing:border-box}
+html,body{overflow-x:hidden;max-width:100%}
+body{margin:0;font-family:Cairo,system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff;color:var(--ink);font-size:16px;line-height:1.65;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px 110px}
+.top{background:var(--ink);color:#fff;text-align:center;font-size:13px;font-weight:700;padding:7px 12px}
+h1{font-size:26px;line-height:1.3;margin:18px 0 8px;font-weight:800}
+.sub{color:var(--muted);margin:0 0 14px;font-size:16px}
+video,img.hero{width:100%;border-radius:14px;background:#000;display:block}
+.price{display:flex;align-items:baseline;gap:10px;margin:14px 0 6px}
+.price b{font-size:30px;color:var(--brand);font-weight:800}
+.price s{color:var(--muted);font-size:17px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 18px}
+.badge{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--soft);border:1px solid var(--line)}
+.btn{display:block;width:100%;text-align:center;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;font:inherit;font-weight:800;font-size:18px;text-decoration:none;box-shadow:0 8px 22px rgba(228,87,46,.35);cursor:pointer}
+.sec{margin:26px 0}
+h2{font-size:20px;margin:0 0 10px;font-weight:800}
+.card{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.ben{display:flex;gap:12px;align-items:flex-start}
+.ben .i{font-size:26px;line-height:1}
+.ben b{display:block;margin-bottom:2px}
+.ben span{color:var(--muted);font-size:14px}
+.gal{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gal img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:var(--soft)}
+.how{display:flex;gap:8px}
+.how div{flex:1;text-align:center;background:var(--soft);border-radius:12px;padding:12px 6px;font-size:14px;font-weight:700}
+.how div b{display:block;font-size:22px;color:var(--brand)}
+.rev{border-right:3px solid var(--brand);padding-right:12px}
+.rev b{display:block;font-size:14px}.rev span{color:var(--muted);font-size:13px}
+details{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fff}
+summary{font-weight:700;cursor:pointer}
+details p{margin:8px 0 0;color:var(--muted);font-size:15px}
+form label{display:block;font-weight:700;font-size:14px;margin:12px 0 4px}
+form input,form select{width:100%;padding:13px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:16px;background:#fff}
+form input:focus{outline:none;border-color:var(--brand)}
+.hp{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+.urg{background:#fff4dd;border-radius:12px;padding:10px 14px;font-weight:700;text-align:center;margin:12px 0}
+.ok{background:#e5f5ec;color:var(--ok);border-radius:14px;padding:18px;text-align:center;font-weight:800;font-size:18px;margin:16px 0}
+.err{background:#fdeaea;color:#c53b3b;border-radius:12px;padding:10px;text-align:center;font-weight:700;margin:10px 0}
+.stick{position:fixed;bottom:0;left:0;width:100%;background:#fff;border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:9}
+.stick .in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.stick b{font-size:20px;color:var(--brand);white-space:nowrap}
+.stick a{flex:1;padding:12px;font-size:16px;box-shadow:none}
+.foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="top">🚚 التوصيل لجميع المدن · 💵 الخلاص عند الاستلام</div>
+<div class="wrap">
+  <h1>{{ p.content.title or p.name }}</h1>
+  {% if p.content.subtitle %}<p class="sub">{{ p.content.subtitle }}</p>{% endif %}
+
+  {% if p.video %}
+    <video src="/p/{{p.slug}}/media/{{p.video}}" controls playsinline preload="metadata" {% if p.images %}poster="/p/{{p.slug}}/media/{{p.images[0]}}"{% endif %}></video>
+  {% elif p.images %}
+    <img class="hero" src="/p/{{p.slug}}/media/{{p.images[0]}}" alt="{{p.name}}">
+  {% endif %}
+
+  <div class="price"><b>{{ p.price or p.content.price }}</b>{% if p.content.old_price %}<s>{{ p.content.old_price }}</s>{% endif %}</div>
+  <div class="badges"><span class="badge">💵 الخلاص عند الاستلام</span><span class="badge">🚚 توصيل سريع</span>{% if p.content.guarantee %}<span class="badge">✅ {{ p.content.guarantee }}</span>{% endif %}</div>
+  <a class="btn" href="#order">{{ p.content.cta or "اطلب دابا" }}</a>
+  {% if p.content.urgency %}<div class="urg">⏰ {{ p.content.urgency }}</div>{% endif %}
+
+  {% if p.content.problem or p.content.solution %}
+  <div class="sec">
+    {% if p.content.problem %}<h2>😩 المشكل</h2><p>{{ p.content.problem }}</p>{% endif %}
+    {% if p.content.solution %}<h2>✨ الحل</h2><p>{{ p.content.solution }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if p.content.benefits %}
+  <div class="sec"><h2>علاش غتبغيه</h2>
+    {% for b in p.content.benefits %}<div class="card ben"><span class="i">{{ b.icon or "✅" }}</span><div><b>{{ b.title }}</b><span>{{ b.text }}</span></div></div>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if p.images|length > 1 %}
+  <div class="sec"><h2>التصاور</h2><div class="gal">{% for im in p.images[1:5] %}<img src="/p/{{p.slug}}/media/{{im}}" loading="lazy" alt="">{% endfor %}</div></div>
+  {% endif %}
+
+  {% if p.content.how %}
+  <div class="sec"><h2>كيفاش كتطلب</h2><div class="how">{% for h in p.content.how[:3] %}<div><b>{{ loop.index }}</b>{{ h }}</div>{% endfor %}</div></div>
+  {% endif %}
+
+  {% if p.content.social %}
+  <div class="sec"><h2>شنو قالو الزبناء</h2>
+    {% for r in p.content.social %}<div class="card rev">⭐⭐⭐⭐⭐ {{ r.text }}<b>{{ r.name }}</b><span>{{ r.city }}</span></div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="sec" id="order">
+    <h2>📦 اطلب دابا</h2>
+    {% if sent %}
+      <div class="ok">✅ توصلنا بالطلب ديالك!<br><span style="font-weight:600;font-size:15px">غنتصلو بيك قريب باش نأكدو.</span></div>
+    {% else %}
+    {% if request.query_params.get('err') %}<div class="err">عمّر الاسم ورقم الهاتف مزيان</div>{% endif %}
+    <form method="post" action="/p/{{p.slug}}/order" class="card">
+      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off">
+      <label>الاسم الكامل</label><input name="name" required minlength="2" autocomplete="name">
+      <label>رقم الهاتف</label><input name="tel" type="tel" required inputmode="tel" pattern="[0-9+ ]{9,}" placeholder="06XXXXXXXX" autocomplete="tel">
+      <label>المدينة</label><input name="city" required autocomplete="address-level2">
+      <label>العنوان <span style="color:var(--muted);font-weight:400">(اختياري)</span></label><input name="adress" autocomplete="street-address">
+      <label>الكمية</label><select name="quantity"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+      <div style="margin-top:14px"><button class="btn" type="submit">{{ p.content.cta or "اطلب دابا" }} · {{ p.price or p.content.price }}</button></div>
+      <p style="text-align:center;color:var(--muted);font-size:13px;margin:10px 0 0">💵 ماتخلص حتى توصلك السلعة</p>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if p.content.faq %}
+  <div class="sec"><h2>أسئلة كتعاود</h2>
+    {% for f in p.content.faq %}<details><summary>{{ f.q }}</summary><p>{{ f.a }}</p></details>{% endfor %}
+  </div>
+  {% endif %}
+  <div class="foot">Shopping Net · الخلاص عند الاستلام</div>
+</div>
+{% if not sent %}
+<div class="stick"><div class="in"><b>{{ p.price or p.content.price }}</b><a class="btn" href="#order">{{ p.content.cta or "اطلب دابا" }}</a></div></div>
+{% endif %}
+</body>
+</html>

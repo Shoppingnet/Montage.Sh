@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}صفحات الهبوط{% endblock %}
+{% block body %}
+<div class="card">
+  <h2><span class="title-ico">🛒</span>صفحة هبوط جديدة</h2>
+  <p class="small muted" style="margin:0 0 6px">Gemini كيكتب الصفحة بالدارجة بزاوية البيع اللي تختار، وكياخد الفيديو والتصاور من فيديو مدبلج.</p>
+  <form method="post" action="/pages/new">
+    <div class="grid2">
+      <div><label>سمية المنتوج</label><input type="text" name="name" placeholder="مثلا: كرسي مريح للظهر"></div>
+      <div><label>الثمن</label><input type="text" name="price" placeholder="199 درهم"></div>
+    </div>
+    <label>من فيديو مدبلج <span class="hint">(اختياري — كياخد منو الفيديو والتصاور والمعلومات)</span></label>
+    <select name="job_id"><option value="">بلا فيديو</option>{% for j in jobs %}<option value="{{j.id}}">{{j.name}}</option>{% endfor %}</select>
+    <label>زاوية البيع <span class="hint">(اختياري)</span></label>
+    <input type="text" name="angle" placeholder="مثلا: الراحة / التوفير / هدية / الصحة / السرعة">
+    <label>معلومات على المنتوج <span class="hint">(اختياري إلا اخترتي فيديو)</span></label>
+    <textarea name="product_info" placeholder="المميزات، الثمن، الضمان، التوصيل..."></textarea>
+    <label>الرابط <span class="hint">(اختياري، مثلا: korsi-mori7)</span></label>
+    <input type="text" name="slug" placeholder="كيتصاوب من السمية">
+    <div style="margin-top:14px"><button class="btn primary lg" style="width:100%">✨ صاوب الصفحة</button></div>
+  </form>
+</div>
+
+{% if not crm %}<div class="note" style="margin-bottom:14px">⚠ الـ CRM مازال ماربوطش: زيد <code>CRM_URL</code> فـ <code>.env</code> باش الطلبات يمشيو ليه. الطلبات كيتسجلو هنا فالانتظار.</div>{% endif %}
+{% if failed %}<form method="post" action="/pages/retry_crm" class="note row" style="justify-content:space-between;margin-bottom:14px"><span>⚠ {{failed}} طلبات ماوصلوش للـ CRM</span><button class="btn sm">عاود صيفطهم</button></form>{% endif %}
+
+<div class="card">
+  <h3><span class="title-ico">📄</span>الصفحات</h3>
+  {% if not pages %}<div class="empty"><span class="ico">🛒</span>مازال ماكاينة حتى صفحة.</div>{% endif %}
+  <table class="jobs">
+  {% for p in pages %}
+    <tr>
+      <td><a href="/pages/{{p.slug}}"><b>{{p.name}}</b></a><div class="small muted">/p/{{p.slug}} · {{p.price}}</div></td>
+      <td class="small">👁 {{p.views}}</td>
+      <td><span class="badge {% if p.leads %}b-done{% endif %}">📦 {{p.leads}} طلب</span></td>
+      <td>{% if p.published %}<a class="btn sm" href="/p/{{p.slug}}" target="_blank">فتح ↗</a>{% else %}<span class="badge">مخفية</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </table>
+</div>
+{% endblock %}

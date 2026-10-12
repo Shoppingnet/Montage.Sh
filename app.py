@@ -20,6 +20,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials  # noqa: E402
 from fastapi.templating import Jinja2Templates  # noqa: E402
 
 import ad_images  # noqa: E402
+import landing as L  # noqa: E402
 import pipeline as P  # noqa: E402
 
 BASE = Path(__file__).parent
@@ -299,6 +300,15 @@ def run_isolated(fn, jid):
         raise RuntimeError(err)
 
 
+def _crm_retry_loop():
+    while True:
+        time.sleep(300)
+        try:
+            L.retry_failed_leads()
+        except Exception:  # noqa
+            traceback.print_exc()
+
+
 def worker(n):
     while True:
         did = False
@@ -340,9 +350,14 @@ T = Jinja2Templates(directory=str(BASE / "templates"))
 T.env.globals.update(STATUS_AR=STATUS_AR, PLACEMENTS=ad_images.PLACEMENTS)
 
 
+app.mount("/p", L.public)  # صفحات الهبوط عمومية (بلا باسورد)
+
+
 @app.on_event("startup")
 def _start():
     init_db()
+    L.init_db()
+    threading.Thread(target=_crm_retry_loop, daemon=True).start()
     for i in range(int(os.getenv("WORKERS", "2"))):
         threading.Thread(target=worker, args=(i,), daemon=True).start()
 
@@ -621,3 +636,134 @@ def files(job_id: str, name: str, dl: int = 0):
 def api_jobs(batch: str = ""):
     return JSONResponse([{"id": j["id"], "status": j["status"], "step": j["step"], "img": j["img_status"]}
                          for j in list_jobs(batch or None)])
+
+
+# ───────────────────────── صفحات الهبوط (الإدارة) ─────────────────────────
+@app.get("/pages")
+def pages_index(request: Request):
+    with L.db() as c:
+        failed = c.execute("SELECT COUNT(*) FROM leads WHERE crm_status='failed'").fetchone()[0]
+    jobs = [dict(r) for r in db().execute("SELECT id,name FROM jobs WHERE status='done' ORDER BY created DESC LIMIT 30")]
+    return T.TemplateResponse(request, "pages.html", {"pages": L.list_pages(), "crm": bool(L.CRM_URL), "failed": failed,
+                                                       "jobs": jobs})
+
+
+def _page_dir(slug):
+    d = L.PAGES / slug
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _collect_media(slug, job_id):
+    """كياخد الفيديو النهائي وتصاور الإعلانات وتصويرة المنتوج من الفيديو المدبلج."""
+    d = _page_dir(slug)
+    j = jdir(job_id)
+    video = ""
+    if (j / "final.mp4").exists():
+        shutil.copy(j / "final.mp4", d / "video.mp4")
+        video = "video.mp4"
+    images = []
+    ph = product_photo(job_id)
+    if ph:
+        shutil.copy(ph, d / "product.jpg")
+        images.append("product.jpg")
+    ads = j / "ads"
+    if ads.exists():
+        for n in ("v1_meta_feed_1x1_1080x1080.jpg", "v2_meta_feed_1x1_1080x1080.jpg", "v1_meta_feed_4x5_1080x1350.jpg"):
+            if (ads / n).exists():
+                shutil.copy(ads / n, d / n)
+                images.append(n)
+    return video, images
+
+
+@app.post("/pages/new")
+async def pages_new(request: Request):
+    form = await request.form()
+    name = (form.get("name") or "").strip()
+    job_id = (form.get("job_id") or "").strip()
+    j = get(job_id) if job_id else None
+    if not name and j:
+        name = (j["plan"] or {}).get("product") or j["name"]
+    if not name:
+        raise HTTPException(400, "خاص سمية المنتوج")
+    slug = L.slugify(form.get("slug") or name)
+    info = form.get("product_info") or (j["product_info"] if j else "")
+    angle = form.get("angle") or ""
+    content = P.write_landing(info, angle, j["plan"] if j else None, product_photo(job_id) if j else None)
+    video, images = _collect_media(slug, job_id) if j else ("", [])
+    price = form.get("price") or content.get("price") or ((j["plan"] or {}).get("ad", {}).get("price") if j else "") or ""
+    L.save_page(slug, name=name, product_ref=form.get("product_ref") or name, price=price, angle=angle,
+                product_info=info, job_id=job_id, content=content, images=images, published=1)
+    with L.db() as c:
+        c.execute("UPDATE pages SET video=? WHERE slug=?", (video, slug))
+    return RedirectResponse(f"/pages/{slug}", status_code=303)
+
+
+@app.get("/pages/{slug}")
+def page_edit(request: Request, slug: str):
+    p = L.get_page(slug)
+    if not p:
+        raise HTTPException(404)
+    with L.db() as c:
+        leads = [dict(r) for r in c.execute("SELECT * FROM leads WHERE slug=? ORDER BY created DESC LIMIT 100", (slug,))]
+    jobs = [dict(r) for r in db().execute("SELECT id,name FROM jobs WHERE status='done' ORDER BY created DESC LIMIT 30")]
+    return T.TemplateResponse(request, "page_edit.html", {"p": p, "leads": leads, "jobs": jobs,
+                                                           "content_json": json.dumps(p["content"], ensure_ascii=False, indent=1)})
+
+
+@app.post("/pages/{slug}/save")
+async def page_save(request: Request, slug: str):
+    p = L.get_page(slug)
+    if not p:
+        raise HTTPException(404)
+    form = await request.form()
+    content = dict(p["content"])
+    for k in ("title", "subtitle", "cta", "problem", "solution", "urgency", "guarantee", "old_price"):
+        if k in form:
+            content[k] = form.get(k, "")
+    if form.get("content_json"):
+        try:
+            content = json.loads(form["content_json"])
+        except ValueError:
+            raise HTTPException(400, "JSON ماشي صحيح")
+    fields = dict(name=form.get("name") or p["name"], product_ref=form.get("product_ref") or p["product_ref"],
+                  price=form.get("price") or p["price"], published=1 if form.get("published") else 0, content=content)
+    action = form.get("action", "save")
+    if action == "regen":
+        fields["angle"] = form.get("angle") or p["angle"]
+        j = get(p["job_id"]) if p["job_id"] else None
+        fields["content"] = P.write_landing(p["product_info"], fields["angle"], j["plan"] if j else None,
+                                            product_photo(p["job_id"]) if j else None)
+    if action == "media" and form.get("job_id"):
+        video, images = _collect_media(slug, form["job_id"])
+        fields["job_id"] = form["job_id"]
+        fields["images"] = images
+        with L.db() as c:
+            c.execute("UPDATE pages SET video=? WHERE slug=?", (video, slug))
+    L.save_page(slug, **fields)
+    return RedirectResponse(f"/pages/{slug}", status_code=303)
+
+
+@app.post("/pages/{slug}/photo")
+async def page_photo(slug: str, photo: UploadFile = File(...)):
+    p = L.get_page(slug)
+    if not p:
+        raise HTTPException(404)
+    d = _page_dir(slug)
+    name = f"img_{uuid.uuid4().hex[:6]}.jpg"
+    save_photo(await photo.read(), d / name)
+    L.save_page(slug, images=p["images"] + [name])
+    return RedirectResponse(f"/pages/{slug}", status_code=303)
+
+
+@app.post("/pages/{slug}/delete")
+def page_delete(slug: str):
+    L.delete_page(slug)
+    shutil.rmtree(L.PAGES / slug, ignore_errors=True)
+    return RedirectResponse("/pages", status_code=303)
+
+
+@app.post("/pages/retry_crm")
+def pages_retry():
+    L.retry_failed_leads()
+    return RedirectResponse("/pages", status_code=303)

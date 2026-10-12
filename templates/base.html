@@ -30,6 +30,7 @@ header a{text-decoration:none;display:flex;align-items:center;gap:10px}
 .logo svg{width:18px;height:18px}
 .brand-name{font-weight:800;font-size:17px;line-height:1.1}
 .brand-name small{display:block;font-weight:600;font-size:11px;opacity:.6;letter-spacing:.3px}
+.nav{display:flex;gap:4px}.nav a{font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);text-decoration:none;white-space:nowrap}
 .pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15)}
 main{max-width:1080px;margin:0 auto;padding:18px 16px 40px;min-width:0}
 .card,.grid2>*{min-width:0}
@@ -133,7 +134,7 @@ details summary{cursor:pointer}
 <header><div class="in">
   <a href="/"><span class="logo"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10-6.5a1 1 0 0 0 0-1.72l-10-6.5A1 1 0 0 0 8 5.5z"/></svg></span>
     <span class="brand-name">دبلجة الدارجة<small>MONTAGE.SH</small></span></a>
-  <span class="pill">Shopping Net</span>
+  <nav class="nav"><a href="/">🎬 الفيديوهات</a><a href="/pages">🛒 صفحات الهبوط</a></nav>
 </div></header>
 <main>{% block body %}{% endblock %}</main>
 {% block js %}{% endblock %}

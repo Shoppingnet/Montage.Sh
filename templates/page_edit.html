@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block body %}
+<div class="row" style="justify-content:space-between;margin-bottom:10px">
+  <div><a href="/pages" class="small muted">← صفحات الهبوط</a><h2 style="margin:4px 0 0">{{ p.name }}</h2></div>
+  <div class="row">
+    <a class="btn primary" href="/p/{{p.slug}}" target="_blank">👁 شوف الصفحة ↗</a>
+    <button class="btn sm" onclick="navigator.clipboard.writeText(location.origin+'/p/{{p.slug}}');this.textContent='تنسخ ✓'">📋 نسخ الرابط</button>
+  </div>
+</div>
+
+<div class="grid2">
+  <form method="post" action="/pages/{{p.slug}}/save" class="card">
+    <h3><span class="title-ico">✏️</span>المحتوى</h3>
+    <div class="grid2">
+      <div><label>سمية المنتوج</label><input type="text" name="name" value="{{p.name}}"></div>
+      <div><label>الثمن</label><input type="text" name="price" value="{{p.price}}"></div>
+    </div>
+    <label>المرجع فالـ CRM <span class="hint">(ProductReference، خاصو يطابق سمية المنتوج فالـ CRM)</span></label>
+    <input type="text" name="product_ref" value="{{p.product_ref}}">
+    <label>العنوان (hook)</label><input type="text" name="title" value="{{p.content.title}}">
+    <label>تحت العنوان</label><input type="text" name="subtitle" value="{{p.content.subtitle}}">
+    <div class="grid2">
+      <div><label>الثمن القديم</label><input type="text" name="old_price" value="{{p.content.old_price}}"></div>
+      <div><label>الزر</label><input type="text" name="cta" value="{{p.content.cta}}"></div>
+    </div>
+    <label>المشكل</label><textarea name="problem">{{p.content.problem}}</textarea>
+    <label>الحل</label><textarea name="solution">{{p.content.solution}}</textarea>
+    <div class="grid2">
+      <div><label>الاستعجال</label><input type="text" name="urgency" value="{{p.content.urgency}}"></div>
+      <div><label>الضمان</label><input type="text" name="guarantee" value="{{p.content.guarantee}}"></div>
+    </div>
+    <details style="margin-top:10px"><summary class="small muted">المحتوى الكامل (JSON: المميزات، الآراء، FAQ...)</summary>
+      <textarea name="content_json" style="min-height:260px;font-family:monospace;font-size:13px;direction:ltr">{{content_json}}</textarea>
+      <div class="hint">يلا بدلتي هنا، هو اللي كيتحسب.</div>
+    </details>
+    <label class="chk" style="margin-top:12px"><input type="checkbox" name="published" value="1" {% if p.published %}checked{% endif %}> الصفحة منشورة</label>
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" name="action" value="save">💾 حفظ</button>
+    </div>
+    <h3 style="margin-top:18px"><span class="title-ico">🔁</span>عاود كتب بزاوية أخرى</h3>
+    <div class="row"><input type="text" name="angle" value="{{p.angle}}" placeholder="زاوية البيع" style="flex:1;min-width:160px"><button class="btn sm dark" name="action" value="regen" onclick="return confirm('غيتبدل المحتوى كامل. متأكد؟')">✨ عاود كتب</button></div>
+    <h3 style="margin-top:18px"><span class="title-ico">🎬</span>الفيديو والتصاور من فيديو مدبلج</h3>
+    <div class="row"><select name="job_id" style="flex:1;min-width:160px"><option value="">— اختار —</option>{% for j in jobs %}<option value="{{j.id}}" {% if j.id==p.job_id %}selected{% endif %}>{{j.name}}</option>{% endfor %}</select><button class="btn sm" name="action" value="media">جيب</button></div>
+  </form>
+
+  <div>
+    <div class="card">
+      <h3><span class="title-ico">🖼</span>التصاور {% if p.video %}<span class="badge b-done">🎥 فيديو ✓</span>{% endif %}</h3>
+      <div class="ads">{% for im in p.images %}<a href="/p/{{p.slug}}/media/{{im}}" target="_blank"><img src="/p/{{p.slug}}/media/{{im}}" loading="lazy"></a>{% endfor %}</div>
+      <form method="post" action="/pages/{{p.slug}}/photo" enctype="multipart/form-data" class="row" style="margin-top:10px">
+        <input type="file" name="photo" accept="image/*" required style="flex:1;min-width:180px;padding:10px"><button class="btn sm dark">رفع</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3><span class="title-ico">📦</span>الطلبات ({{leads|length}})</h3>
+      {% if not leads %}<p class="muted small">مازال ماكاين حتى طلب.</p>{% endif %}
+      <table class="jobs">{% for l in leads %}
+        <tr><td><b>{{l.name}}</b><div class="small muted">{{l.tel}} · {{l.city}} · ×{{l.quantity}}</div></td>
+        <td>{% if l.crm_status=='sent' %}<span class="badge b-done">CRM ✓</span>{% elif l.crm_status=='failed' %}<span class="badge b-error" title="{{l.crm_error}}">ماوصلش</span>{% else %}<span class="badge">فالانتظار</span>{% endif %}</td></tr>
+      {% endfor %}</table>
+    </div>
+    <form method="post" action="/pages/{{p.slug}}/delete" onsubmit="return confirm('مسح الصفحة؟')"><button class="btn sm danger">مسح الصفحة</button></form>
+  </div>
+</div>
+{% endblock %}
