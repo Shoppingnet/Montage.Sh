@@ -65,10 +65,11 @@ def init_db():
             c.execute("ALTER TABLE jobs ADD COLUMN opts TEXT DEFAULT '{}'")
         except sqlite3.OperationalError:
             pass
-        try:
-            c.execute("ALTER TABLE jobs ADD COLUMN tries INTEGER DEFAULT 0")
-        except sqlite3.OperationalError:
-            pass
+        for col in ("tries INTEGER DEFAULT 0", "priority INTEGER DEFAULT 0"):
+            try:
+                c.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
+            except sqlite3.OperationalError:
+                pass
         # فيديو كان كيتصاوب ملي طفات الخدمة: كنعاودوه، ولكن إلا وقع هادشي جوج مرات = هو اللي كيطيّح السيرفر، نوقفوه
         c.execute("UPDATE jobs SET tries=COALESCE(tries,0)+1 WHERE status IN ('analyzing','editing','rendering')")
         c.execute("UPDATE jobs SET status='error', step='', error='هاد الفيديو طيّح الخدمة جوج مرات (غالبا طويل بزاف"
@@ -131,7 +132,8 @@ def update(job_id, **kw):
 
 def claim(from_status, to_status, col="status"):
     with LOCK, db() as c:
-        r = c.execute(f"SELECT id FROM jobs WHERE {col}=? ORDER BY created LIMIT 1", (from_status,)).fetchone()
+        r = c.execute(f"SELECT id FROM jobs WHERE {col}=? ORDER BY COALESCE(priority,0) DESC, created LIMIT 1",
+                      (from_status,)).fetchone()
         if not r:
             return None
         c.execute(f"UPDATE jobs SET {col}=?, updated=? WHERE id=?", (to_status, time.time(), r["id"]))
@@ -309,13 +311,17 @@ def _crm_retry_loop():
             traceback.print_exc()
 
 
-def worker(n):
+# المراحل الخفيفة (Gemini، التصاور) كيخدمو بزاف فنفس الوقت، والمونتاج (FFmpeg) واحد فالمرة
+LIGHT_STAGES = (("edit_queued", "editing", stage_edit, "status"),
+                ("queued", "analyzing", stage_analyze, "status"),
+                ("queued", "working", stage_images, "img_status"))
+HEAVY_STAGES = (("approved", "rendering", stage_render, "status"),)
+
+
+def worker(stages):
     while True:
         did = False
-        for frm, to, fn, col in (("approved", "rendering", stage_render, "status"),
-                                 ("edit_queued", "editing", stage_edit, "status"),
-                                 ("queued", "analyzing", stage_analyze, "status"),
-                                 ("queued", "working", stage_images, "img_status")):
+        for frm, to, fn, col in stages:
             jid = claim(frm, to, col)
             if not jid:
                 continue
@@ -358,8 +364,10 @@ def _start():
     init_db()
     L.init_db()
     threading.Thread(target=_crm_retry_loop, daemon=True).start()
-    for i in range(int(os.getenv("WORKERS", "2"))):
-        threading.Thread(target=worker, args=(i,), daemon=True).start()
+    for _ in range(int(os.getenv("LIGHT_WORKERS", "3"))):
+        threading.Thread(target=worker, args=(LIGHT_STAGES,), daemon=True).start()
+    for _ in range(int(os.getenv("HEAVY_WORKERS", os.getenv("WORKERS", "1")))):
+        threading.Thread(target=worker, args=(HEAVY_STAGES,), daemon=True).start()
 
 
 def list_jobs(batch=None, status=None):
@@ -393,7 +401,8 @@ def index(request: Request, batch: str = "", status: str = ""):
             "SELECT batch, MIN(created) t, COUNT(*) n, SUM(status='done') done, SUM(status='review') rev "
             "FROM jobs GROUP BY batch ORDER BY t DESC LIMIT 15")]
     return T.TemplateResponse(request, "index.html", {
-        "jobs": list_jobs(batch or None, status or None), "voices": voices(), "counts": counts,
+        "jobs": list_jobs(batch or None, status or None), "voices": voices(), "counts": counts, "queue": queue_info(),
+        "PROGRESS": PROGRESS,
         "batches": batches, "batch": batch, "status": status, "disk": disk_info(), "music": music_files()})
 
 
@@ -632,10 +641,32 @@ def files(job_id: str, name: str, dl: int = 0):
     return FileResponse(p, filename=fname)
 
 
+PROGRESS = {"queued": 5, "analyzing": 20, "review": 40, "edit_queued": 45, "editing": 50, "approved": 60,
+            "rendering": 80, "done": 100, "error": 0}
+
+
+def queue_info():
+    """شحال من فيديو قدام كل واحد فطابور المونتاج."""
+    with db() as c:
+        rows = c.execute("SELECT id FROM jobs WHERE status='approved' ORDER BY COALESCE(priority,0) DESC, created").fetchall()
+    return {r["id"]: i + 1 for i, r in enumerate(rows)}
+
+
 @app.get("/api/jobs")
 def api_jobs(batch: str = ""):
     return JSONResponse([{"id": j["id"], "status": j["status"], "step": j["step"], "img": j["img_status"]}
                          for j in list_jobs(batch or None)])
+
+
+@app.post("/job/{job_id}/prioritize")
+def job_prioritize(job_id: str):
+    update(job_id, priority=int(time.time()))
+    return RedirectResponse(request_back(job_id), status_code=303)
+
+
+def request_back(job_id):
+    j = get(job_id)
+    return f"/?batch={j['batch']}"
 
 
 # ───────────────────────── صفحات الهبوط (الإدارة) ─────────────────────────

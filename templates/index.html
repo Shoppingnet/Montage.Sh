@@ -124,11 +124,13 @@
   {% for j in jobs %}
     <tr>
       <td><a href="/job/{{j.id}}"><b>{{ j.name }}</b></a>
-        {% if j.step %}<div class="small muted">{{j.step}}</div>{% endif %}
+        {% set pct = PROGRESS.get(j.status, 10) %}
+        <div class="prog {{ 'p-done' if j.status=='done' else ('p-err' if j.status=='error' else '') }}"><i style="width:{{pct}}%"></i></div>
+        <div class="small muted">{% if j.step %}{{j.step}}{% elif j.status=='approved' and queue.get(j.id) %}فالطابور: {{ queue[j.id] }}{% if queue[j.id]==1 %} (الجاي){% else %} قدامو {{ queue[j.id]-1 }}{% endif %}{% elif j.status=='review' %}كيتسناك تراجع وتقبل{% endif %}</div>
         {% if j.error %}<div class="small" style="color:var(--bad)">{{ j.error[:120] }}</div>{% endif %}</td>
       <td>{{ badge(j.status) }}</td>
       <td class="small">{% if j.img_status == 'done' %}🖼 ✓{% elif j.img_status in ['queued','working'] %}🖼 <span class="spin"></span>{% elif j.img_status=='error' %}🖼 ✗{% endif %}</td>
-      <td>{% if j.status == 'done' %}<a class="btn sm primary" href="/files/{{j.id}}/final.mp4?dl=1">⬇ تحميل</a>{% else %}<a class="btn sm" href="/job/{{j.id}}">فتح</a>{% endif %}</td>
+      <td>{% if j.status == 'done' %}<a class="btn sm primary" href="/files/{{j.id}}/final.mp4?dl=1">⬇ تحميل</a>{% elif j.status=='approved' and queue.get(j.id,1) > 1 %}<form method="post" action="/job/{{j.id}}/prioritize"><button class="btn sm" title="يتصاوب قبل الباقي">⬆ قدّمو</button></form>{% else %}<a class="btn sm" href="/job/{{j.id}}">فتح</a>{% endif %}</td>
     </tr>
   {% endfor %}
   </table>
