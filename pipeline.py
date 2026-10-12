@@ -324,6 +324,93 @@ def analyze(video: Path, product_info="", instruction="", photo=None):
     return normalize_plan(_parse_json(resp.text), dur)
 
 
+def transcribe(video: Path):
+    """وضع 'كابشن': واحد كيهضر فالفيديو. Gemini كيسمع وكيرجع كل كلمة بالدارجة (حروف عربية) مع التوقيت ديالها."""
+    dur = duration(video)
+    if MOCK:
+        words = "سلام عليكم هاد المنتوج زوين بزاف و الثمن غير ميا و تسعة و تسعين درهم".split()
+        step = dur / len(words)
+        return [{"w": w, "s": round(i * step, 2), "e": round((i + 1) * step, 2)} for i, w in enumerate(words)]
+    from google.genai import types
+    client = _gemini_client()
+    f = client.files.upload(file=str(video))
+    while f.state and f.state.name == "PROCESSING":
+        time.sleep(3)
+        f = client.files.get(name=f.name)
+    if f.state and f.state.name == "FAILED":
+        raise RuntimeError("Gemini ماقدرش يقرا الفيديو")
+    prompt = f"""اسمع الكلام اللي فهاد الفيديو (الطول {dur:.1f} ثانية) واكتبو كلمة بكلمة مع التوقيت ديال كل كلمة.
+- الدارجة والعربية بالحروف العربية كيف ما تنطقات (ماتترجمش وماتصححش للفصحى).
+- الكلمات بالفرنسية ولا الإنجليزية خليها بالحروف اللاتينية كيف ما تنطقات.
+- الأرقام اكتبها بالأرقام (199).
+- التوقيت بالثواني بدقة (s = البداية، e = النهاية)، ماتخليش فراغات كبار بين الكلمات.
+رجّع JSON فقط: {{"words": [{{"w": "الكلمة", "s": 0.0, "e": 0.4}}, ...]}}"""
+    resp = client.models.generate_content(
+        model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"), contents=[f, prompt],
+        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1),
+    )
+    try:
+        client.files.delete(name=f.name)
+    except Exception:
+        pass
+    out = []
+    for w in _parse_json(resp.text).get("words") or []:
+        try:
+            s_, e = float(w["s"]), float(w["e"])
+            if str(w.get("w", "")).strip() and e > s_ >= 0:
+                out.append({"w": str(w["w"]).strip(), "s": round(min(s_, dur), 2), "e": round(min(e, dur), 2)})
+        except (KeyError, TypeError, ValueError):
+            continue
+    if not out:
+        raise RuntimeError("Gemini مالقا حتى كلام فالفيديو")
+    return sorted(out, key=lambda x: x["s"])
+
+
+def words_to_segments(words, gap=0.7, max_words=10):
+    """كيقسم الكلمات لجمل (للمراجعة فالصفحة): جملة جديدة ملي كاين سكوت ولا كتوصل لـ 10 كلمات."""
+    segs, cur = [], []
+    for w in words:
+        if cur and (w["s"] - cur[-1]["e"] > gap or len(cur) >= max_words):
+            segs.append(cur)
+            cur = []
+        cur.append(w)
+    if cur:
+        segs.append(cur)
+    return [{"start": c[0]["s"], "end": c[-1]["e"], "text": " ".join(x["w"] for x in c)} for c in segs]
+
+
+def render_captions(src: Path, segments, work: Path, out: Path, music: Path = None, orig_volume=1.0):
+    """وضع كابشن: نفس الفيديو ونفس الصوت الأصلي + الترجمة كلمة بكلمة (+ موسيقى اختيارية)."""
+    w, h = video_size(src)
+    cap = int(os.getenv("MAX_SHORT_SIDE", "1080"))
+    if min(w, h) > cap:
+        k = cap / min(w, h)
+        w, h = int(w * k) // 2 * 2, int(h * k) // 2 * 2
+    placed = [{"text": s_["text"], "start": s_["start"], "end": s_["end"], "words": s_.get("words")} for s_ in segments]
+    ass = work / "subs.ass"
+    write_ass(placed, ass, w, h)
+    total = duration(src)
+    cmd = ["ffmpeg", "-y", "-i", str(src)]
+    if music:
+        cmd += ["-stream_loop", "-1", "-i", str(music)]
+    filt = [f"[0:v]scale={w}:{h},setsar=1,ass='{ass}':fontsdir='{Path(__file__).parent / 'fonts'}',format=yuv420p[v]"]
+    if has_audio(src):
+        if music:
+            mv = float(os.getenv("MUSIC_VOLUME", "0.18"))
+            filt.append(f"[0:a]volume={orig_volume:.3f},asplit=2[vo][sc]")
+            filt.append(f"[1:a]volume={mv:.3f},aresample=44100,aformat=channel_layouts=stereo[m]")
+            filt.append("[m][sc]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=350[md]")
+            filt.append("[vo][md]amix=inputs=2:duration=first:normalize=0[a]")
+        else:
+            filt.append(f"[0:a]volume={orig_volume:.3f}[a]")
+        amap = ["-map", "[a]", "-c:a", "aac", "-b:a", "192k"]
+    else:
+        amap = ["-an"]
+    run(cmd + ["-filter_complex", ";".join(filt), "-map", "[v]", *amap, "-c:v", "libx264", "-crf", "21",
+               "-preset", PRESET, "-t", f"{total:.3f}", "-movflags", "+faststart", str(out)])
+    return placed
+
+
 def apply_instruction(plan, instruction, dur, product_info=""):
     """كياخد أمر بالدارجة (قص، سرّع، بدل الجملة...) وكيرجع plan جديد."""
     if MOCK:
@@ -549,8 +636,10 @@ def _display(w):
     return re.sub(r"[A-Za-z][A-Za-z0-9'.-]*", lambda m: "\u2066" + m.group(0) + "\u2069", w)
 
 
-def word_times(clip_mp3: Path, text, start, end, tempo=1.0):
+def word_times(clip_mp3: Path, text, start, end, tempo=1.0, known=None):
     """وقت كل كلمة فالفيديو النهائي. إلا ماكانش عندنا alignment (Gemini TTS / MOCK)، كنقسمو على طول الكلمات."""
+    if known:  # وضع كابشن: التوقيت جا من Gemini مباشرة
+        return [(x["w"], x["s"], x["e"]) for x in known]
     words = text.split()
     wj = clip_mp3.with_suffix(".words.json") if clip_mp3 else None
     if wj and wj.exists():
@@ -673,7 +762,8 @@ def write_ass(placed, path: Path, w: int, h: int):
     n = int(os.getenv("SUBS_WORDS", "3"))
     hi = os.getenv("SUBS_HIGHLIGHT", "1") == "1"
     for p in placed:
-        wt = merge_particles(word_times(p.get("raw"), p["text"], p["start"], p["end"], p.get("tempo", 1.0)))
+        wt = merge_particles(word_times(p.get("raw"), p["text"], p["start"], p["end"], p.get("tempo", 1.0),
+                                        p.get("words")))
         if not wt:
             continue
         # كل كلمة كتبقا باينة حتى تبدا اللي موراها (بلا فراغات)

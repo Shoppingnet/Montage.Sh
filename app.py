@@ -84,7 +84,7 @@ MUSIC = DATA / "music"
 MUSIC.mkdir(parents=True, exist_ok=True)
 MUSIC_EXT = {".mp3", ".m4a", ".aac", ".wav", ".ogg"}
 # الاختيارات ديال كل فيديو: ترجمة مكتوبة، موسيقى (none / random / سمية الملف)، مقاسات، نسخ A/B
-DEFAULT_OPTS = {"subs": 1, "music": "none", "sizes": 0, "ab": 0}
+DEFAULT_OPTS = {"subs": 1, "music": "none", "sizes": 0, "ab": 0, "mode": "dub"}
 
 
 def music_files():
@@ -103,7 +103,8 @@ def pick_music(choice):
 
 def opts_from_form(form):
     return {"subs": 1 if form.get("opt_subs") else 0, "music": form.get("opt_music") or "none",
-            "sizes": 1 if form.get("opt_sizes") else 0, "ab": 1 if form.get("opt_ab") else 0}
+            "sizes": 1 if form.get("opt_sizes") else 0, "ab": 1 if form.get("opt_ab") else 0,
+            "mode": form.get("mode") or "dub"}
 
 
 def get(job_id):
@@ -190,6 +191,16 @@ def stage_analyze(job_id):
     if need and os.getenv("AUTO_ENHANCE", "1") == "1":
         update(job_id, step="كيوضح الفيديو", blur=score)
         enhanced = P.enhance(src, d / "enhanced.mp4")
+    if j["opts"].get("mode") == "captions":
+        update(job_id, step="Gemini كيسمع الكلام وكيكتبو كلمة بكلمة", blur=score, enhanced=enhanced)
+        words = P.transcribe(work_video(job_id))
+        segs = P.words_to_segments(words)
+        plan = P.normalize_plan({"product": "", "segments": segs, "cuts": [], "speed": 1.0, "orig_volume": 1.0,
+                                 "ad": {}, "notes": f"سمعت {len(words)} كلمة. صلح اللي غالط ومن بعد قبل."},
+                                P.duration(work_video(job_id)))
+        plan["words"] = words
+        update(job_id, plan=plan, step="", error="", status="approved" if j["auto_approve"] else "review")
+        return
     update(job_id, step="Gemini كيشوف الفيديو وكيكتب السكريبت", blur=score, enhanced=enhanced)
     plan = P.analyze(work_video(job_id), j["product_info"], j["instruction"], product_photo(job_id))
     update(job_id, plan=plan, step="", error="",
@@ -204,6 +215,19 @@ def stage_edit(job_id):
            status="approved" if j["auto_approve"] else "review")
 
 
+def _segments_with_words(plan):
+    """وضع كابشن: كيرجع لكل جملة الكلمات ديالها بالتوقيت. إلا بدل المستعمل النص، كيتقسم على التوقيت ديال الجملة."""
+    words = plan.get("words") or []
+    out = []
+    for sg in plan["segments"]:
+        inside = [w for w in words if sg["start"] - 0.05 <= w["s"] and w["e"] <= sg["end"] + 0.05]
+        if inside and " ".join(w["w"] for w in inside) == sg["text"].strip():
+            out.append({**sg, "words": inside})
+        else:
+            out.append({**sg, "words": None})  # تبدل النص: نقسمو على طول الكلمات
+    return out
+
+
 def stage_render(job_id):
     j = get(job_id)
     d = jdir(job_id)
@@ -214,6 +238,17 @@ def stage_render(job_id):
     for old in d.glob("final*.mp4"):
         old.unlink()
     music = pick_music(o["music"])
+    if o.get("mode") == "captions":
+        update(job_id, step="كيكتب الكلمات على الفيديو")
+        segs = _segments_with_words(plan)
+        placed = P.render_captions(work_video(job_id), segs, work, d / "final.mp4", music=music,
+                                   orig_volume=float(plan.get("orig_volume", 1.0)))
+        P.write_srt(placed, d / "final.srt")
+        if o["sizes"]:
+            update(job_id, step="كيصاوب المقاسات الأخرى")
+            P.make_sizes(d / "final.mp4", d)
+        update(job_id, status="done", step="", error="")
+        return
     update(job_id, step="كيصاوب التعليق والمونتاج")
     placed, total = P.render_final(work_video(job_id), plan, j["voice"], work, d / "final.mp4",
                                    subs=bool(o["subs"]), music=music)
@@ -353,7 +388,7 @@ async def submit(links_text: str = Form(""), product_info: str = Form(""), instr
                  links_file: UploadFile | None = File(None), videos: list[UploadFile] = File(default=[]),
                  product_photo_file: UploadFile | None = File(None), opt_subs: str = Form(""),
                  opt_music: str = Form("none"), opt_sizes: str = Form(""), opt_ab: str = Form(""),
-                 merge: str = Form("")):
+                 merge: str = Form(""), mode: str = Form("dub")):
     batch = time.strftime("%m%d-%H%M") + "-" + uuid.uuid4().hex[:4]
     up = DATA / "uploads" / batch
     up.mkdir(parents=True, exist_ok=True)
@@ -408,7 +443,8 @@ async def submit(links_text: str = Form(""), product_info: str = Form(""), instr
                       (uuid.uuid4().hex[:10], batch, name, src, product_info, instruction, voice,
                        1 if auto_approve else 0, 1 if make_images else 0, "queued", "", "", now + i * 1e-3, now,
                        json.dumps({"subs": 1 if opt_subs else 0, "music": opt_music or "none",
-                                   "sizes": 1 if opt_sizes else 0, "ab": 1 if opt_ab else 0})))
+                                   "sizes": 1 if opt_sizes else 0, "ab": 1 if opt_ab else 0,
+                                   "mode": mode if mode in ("dub", "captions") else "dub"})))
     return RedirectResponse(f"/?batch={batch}", status_code=303)
 
 
@@ -464,6 +500,7 @@ async def save(request: Request, job_id: str):
     fields = {"plan": plan, "plan_prev": j["plan"], "voice": form.get("voice") or j["voice"],
               "opts": json.dumps(opts_from_form(form))}
     plan["hooks"] = [h.strip() for h in form.getlist("hook") if h.strip()][:2]
+    plan["words"] = (j["plan"] or {}).get("words")
     if action == "approve":
         fields["status"] = "approved"
     if action == "images" or (action == "approve" and form.get("with_images")):

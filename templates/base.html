@@ -119,6 +119,11 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000;display:bloc
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:600px){.opts{grid-template-columns:1fr}}
 .opts .chk{margin-top:0}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:600px){.modes{grid-template-columns:1fr}}
+.mode{display:block;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--soft);cursor:pointer;margin:0}
+.mode input{display:none}.mode b{display:block;margin-bottom:2px}.mode span{font-size:13px;color:var(--muted);font-weight:400}
+.mode.on{border-color:var(--brand);background:var(--brand-soft)}
 details summary{cursor:pointer}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-1px}
 @keyframes s{to{transform:rotate(360deg)}}
@@ -133,6 +138,7 @@ details summary{cursor:pointer}
 <main>{% block body %}{% endblock %}</main>
 {% block js %}{% endblock %}
 <script>
+document.querySelectorAll('.mode input').forEach(r=>r.addEventListener('change',()=>{document.querySelectorAll('.mode').forEach(m=>m.classList.toggle('on',m.querySelector('input').checked))}));
 // الخانات ديال الكتابة كيكبرو مع النص (للمتصفحات اللي مكتعرفش field-sizing)
 if(!CSS.supports('field-sizing','content')){const g=t=>{t.style.height='auto';t.style.height=t.scrollHeight+4+'px'};
 document.querySelectorAll('textarea').forEach(t=>{g(t);t.addEventListener('input',()=>g(t))});}

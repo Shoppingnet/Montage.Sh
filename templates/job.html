@@ -53,7 +53,7 @@
 
 {% if j.plan %}
 <form method="post" action="/job/{{j.id}}/save" class="card" id="pf">
-  <h3><span class="title-ico">📝</span>السكريبت بالدارجة <span class="hint">(التوقيت على الفيديو الأصلي — كليكي على الوقت باش تشوف اللقطة)</span></h3>
+  <h3><span class="title-ico">📝</span>{% if j.opts.mode=='captions' %}الكلام اللي فالفيديو{% else %}السكريبت بالدارجة{% endif %} <span class="hint">(التوقيت على الفيديو الأصلي — كليكي على الوقت باش تشوف اللقطة)</span></h3>
   <div class="seg seg-head small muted" style="font-weight:700"><span>من</span><span>حتى</span><span>الجملة</span><span></span></div>
   <div id="segs">
   {% for s in j.plan.segments %}
@@ -106,6 +106,7 @@
 
   <label>لقطات التصاور <span class="hint">(بالثواني، مفصولين بفاصلة — مثلا: 3.5, 8. كليكي هنا باش تشوف اللقطة)</span></label>
   <input type="text" name="frames" value="{{ (j.plan.frames or [])|map(attribute='t')|join(', ') }}" placeholder="خليها خاوية = يختار بوحدو" onfocus="seek(this.value.split(',')[0])">
+  <input type="hidden" name="mode" value="{{ j.opts.mode }}">
   <label class="chk"><input type="checkbox" name="with_images" value="1" {% if j.make_images and j.img_status != 'done' %}checked{% endif %}> صاوب التصاور مع الفيديو</label>
   <div class="row" style="margin-top:14px">
     <button class="btn primary lg" name="action" value="approve">✓ قبل وصاوب الفيديو</button>
