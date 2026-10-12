@@ -487,8 +487,9 @@ def tts(text, voice_id, out: Path):
         run(["ffmpeg", "-y", "-f", "lavfi", "-i", f"sine=frequency=440:duration={secs:.2f}",
              "-ar", "44100", str(out)])
         return
+    import base64
     r = requests.post(
-        f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps",
         params={"output_format": "mp3_44100_128"},
         headers={"xi-api-key": os.environ["ELEVENLABS_API_KEY"], "Content-Type": "application/json"},
         json={"text": text, "model_id": os.getenv("ELEVEN_MODEL", "eleven_v4")},
@@ -496,7 +497,51 @@ def tts(text, voice_id, out: Path):
     )
     if r.status_code != 200:
         raise RuntimeError(f"ElevenLabs {r.status_code}: {r.text[:300]}")
-    out.write_bytes(r.content)
+    data = r.json()
+    out.write_bytes(base64.b64decode(data["audio_base64"]))
+    al = data.get("alignment") or {}
+    words = words_from_alignment(al.get("characters") or [], al.get("character_start_times_seconds") or [],
+                                 al.get("character_end_times_seconds") or [])
+    if words:
+        out.with_suffix(".words.json").write_text(json.dumps(words, ensure_ascii=False))
+
+
+def words_from_alignment(chars, starts, ends):
+    """كيجمع الحروف لكلمات: [(الكلمة, البداية, النهاية), ...]"""
+    words, cur, cs, ce = [], "", None, None
+    for ch, a, b in zip(chars, starts, ends):
+        if ch.isspace():
+            if cur:
+                words.append((cur, cs, ce))
+            cur, cs = "", None
+            continue
+        if cs is None:
+            cs = a
+        cur += ch
+        ce = b
+    if cur:
+        words.append((cur, cs, ce))
+    return words
+
+
+def word_times(clip_mp3: Path, text, start, end, tempo=1.0):
+    """وقت كل كلمة فالفيديو النهائي. إلا ماكانش عندنا alignment (Gemini TTS / MOCK)، كنقسمو على طول الكلمات."""
+    words = text.split()
+    wj = clip_mp3.with_suffix(".words.json") if clip_mp3 else None
+    if wj and wj.exists():
+        try:
+            al = json.loads(wj.read_text())
+            if len(al) == len(words):
+                return [(w, start + a / tempo, start + b / tempo) for (w, a, b) in al]
+        except (ValueError, TypeError):
+            pass
+    total = sum(len(w) for w in words) or 1
+    t, out = start, []
+    for w in words:
+        d = (end - start) * len(w) / total
+        out.append((w, t, t + d))
+        t += d
+    return out
 
 
 def gemini_tts(text, voice_name, out: Path):
@@ -556,7 +601,7 @@ def build_voice_track(plan, voice_id, edited_dur, work: Path):
         run(["ffmpeg", "-y", "-i", str(raw), "-af", _atempo_chain(tempo) if tempo > 1.001 else "anull",
              "-ar", "44100", "-ac", "2", str(clip)])
         cd = duration(clip)
-        placed.append({"file": clip, "start": start, "end": start + cd, "text": s["text"]})
+        placed.append({"file": clip, "start": start, "end": start + cd, "text": s["text"], "raw": raw, "tempo": tempo})
         cursor = start + cd + 0.08
     total = max([edited_dur] + [p["end"] for p in placed])
     if not placed:
@@ -601,20 +646,26 @@ def write_ass(placed, path: Path, w: int, h: int):
              f"{max(2, size // 12)},{max(1, size // 25)},2,{int(w*0.06)},{int(w*0.06)},{margin_v},1",
              "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
     n = int(os.getenv("SUBS_WORDS", "3"))
+    hi = os.getenv("SUBS_HIGHLIGHT", "1") == "1"
     for p in placed:
-        words = p["text"].split()
-        if not words:
+        wt = word_times(p.get("raw"), p["text"], p["start"], p["end"], p.get("tempo", 1.0))
+        if not wt:
             continue
-        chunks = [words[i:i + n] for i in range(0, len(words), n)]
-        total_chars = sum(len(" ".join(c)) for c in chunks) or 1
-        t = p["start"]
-        dur = p["end"] - p["start"]
-        for k, c in enumerate(chunks):
-            d = dur * len(" ".join(c)) / total_chars
-            style = "H" if k == 0 and p is placed[0] else "D"  # أول جملة (hook) بالأصفر
-            txt = " ".join(c).replace("{", "(").replace("}", ")")
-            lines.append(f"Dialogue: 0,{ts(t)},{ts(t + d)},{style},,0,0,0,,{txt}")
-            t += d
+        groups = [wt[i:i + n] for i in range(0, len(wt), n)]
+        for g in groups:
+            g_start, g_end = g[0][1], g[-1][2]
+            if not hi:
+                txt = " ".join(w for w, _, _ in g).replace("{", "(").replace("}", ")")
+                lines.append(f"Dialogue: 0,{ts(g_start)},{ts(g_end)},D,,0,0,0,,{txt}")
+                continue
+            # نفس المجموعة كتبان كاملة، والكلمة اللي كتنطق دابا كتولي صفرا وكبيرة شوية
+            for k, (w, a, b) in enumerate(g):
+                parts = []
+                for j, (w2, _, _) in enumerate(g):
+                    w2 = w2.replace("{", "(").replace("}", ")")
+                    parts.append(f"{{\\c&H0000D7FF&\\fscx108\\fscy108}}{w2}{{\\r}}" if j == k else w2)
+                e = b if k < len(g) - 1 else g_end
+                lines.append(f"Dialogue: 0,{ts(a)},{ts(max(e, a + 0.05))},D,,0,0,0,,{' '.join(parts)}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
