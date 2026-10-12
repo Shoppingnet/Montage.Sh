@@ -745,6 +745,23 @@ def api_jobs(batch: str = ""):
                          for j in list_jobs(batch or None)])
 
 
+@app.post("/job/{job_id}/preview_tts")
+def preview_tts(job_id: str, text: str = Form(""), voice: str = Form("")):
+    """كيسمّعك الجملة بالصوت قبل ما تقبل. كيتحفظ فالكاش فنفس البلاصة، فالمونتاج ماكيعاودش يخلص عليها."""
+    import hashlib
+    text = " ".join(text.split())[:600]
+    if not text:
+        raise HTTPException(400, "الجملة خاوية")
+    get(job_id)
+    voice = voice or voices()[0][1]
+    cache = jdir(job_id).parent / "tts_cache"
+    cache.mkdir(exist_ok=True)
+    raw = cache / (hashlib.sha1(f"{voice}|{text}".encode()).hexdigest()[:16] + ".mp3")
+    if not raw.exists() or raw.stat().st_size == 0:
+        P.tts(text, voice, raw)
+    return FileResponse(raw, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
+
+
 @app.post("/job/{job_id}/prioritize")
 def job_prioritize(job_id: str):
     update(job_id, priority=int(time.time()))
