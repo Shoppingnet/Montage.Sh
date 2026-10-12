@@ -86,7 +86,7 @@ MUSIC = DATA / "music"
 MUSIC.mkdir(parents=True, exist_ok=True)
 MUSIC_EXT = {".mp3", ".m4a", ".aac", ".wav", ".ogg"}
 # الاختيارات ديال كل فيديو: ترجمة مكتوبة، موسيقى (none / random / سمية الملف)، مقاسات، نسخ A/B
-DEFAULT_OPTS = {"subs": 1, "music": "none", "sizes": 0, "ab": 0, "mode": "dub"}
+DEFAULT_OPTS = {"subs": 1, "music": "none", "sizes": 0, "ab": 0, "mode": "dub", "clean": 1}
 
 
 def music_files():
@@ -106,7 +106,7 @@ def pick_music(choice):
 def opts_from_form(form):
     return {"subs": 1 if form.get("opt_subs") else 0, "music": form.get("opt_music") or "none",
             "sizes": 1 if form.get("opt_sizes") else 0, "ab": 1 if form.get("opt_ab") else 0,
-            "mode": form.get("mode") or "dub"}
+            "mode": form.get("mode") or "dub", "clean": 1 if form.get("opt_clean") else 0}
 
 
 def get(job_id):
@@ -198,8 +198,13 @@ def stage_analyze(job_id):
         update(job_id, step="Gemini كيسمع الكلام وكيكتبو كلمة بكلمة", blur=score, enhanced=enhanced)
         words = P.transcribe(work_video(job_id))
         segs = P.words_to_segments(words)
+        boxes = []
+        if j["opts"].get("clean"):
+            update(job_id, step="Gemini كيقلب على الكتابة المطبوعة فالفيديو")
+            boxes = P.find_text_boxes(work_video(job_id))
         plan = P.normalize_plan({"product": "", "segments": segs, "cuts": [], "speed": 1.0, "orig_volume": 1.0,
-                                 "ad": {}, "notes": f"سمعت {len(words)} كلمة. صلح اللي غالط ومن بعد قبل."},
+                                 "ad": {}, "text_boxes": boxes,
+                                 "notes": f"سمعت {len(words)} كلمة. صلح اللي غالط ومن بعد قبل."},
                                 P.duration(work_video(job_id)))
         plan["words"] = words
         update(job_id, plan=plan, step="", error="", status="approved" if j["auto_approve"] else "review")
@@ -245,7 +250,8 @@ def stage_render(job_id):
         update(job_id, step="كيكتب الكلمات على الفيديو")
         segs = _segments_with_words(plan)
         placed = P.render_captions(work_video(job_id), segs, work, d / "final.mp4", music=music,
-                                   orig_volume=float(plan.get("orig_volume", 1.0)))
+                                   orig_volume=float(plan.get("orig_volume", 1.0)),
+                                   boxes=plan.get("text_boxes") if o.get("clean") else None)
         P.write_srt(placed, d / "final.srt")
         if o["sizes"]:
             update(job_id, step="كيصاوب المقاسات الأخرى")
@@ -254,7 +260,7 @@ def stage_render(job_id):
         return
     update(job_id, step="كيصاوب التعليق والمونتاج")
     placed, total = P.render_final(work_video(job_id), plan, j["voice"], work, d / "final.mp4",
-                                   subs=bool(o["subs"]), music=music)
+                                   subs=bool(o["subs"]), music=music, clean=bool(o.get("clean")))
     P.write_srt(placed, d / "final.srt")
     if o["ab"] and plan.get("hooks") and plan["segments"]:
         for k, hook in zip("bc", plan["hooks"]):
@@ -262,7 +268,7 @@ def stage_render(job_id):
             alt = json.loads(json.dumps(plan))
             alt["segments"][0]["text"] = hook
             P.render_final(work_video(job_id), alt, j["voice"], work, d / f"final_{k}.mp4",
-                           subs=bool(o["subs"]), music=music)
+                           subs=bool(o["subs"]), music=music, clean=bool(o.get("clean")))
     if o["sizes"]:
         update(job_id, step="كيصاوب المقاسات الأخرى")
         P.make_sizes(d / "final.mp4", d)
@@ -496,7 +502,7 @@ async def submit(request: Request, links_text: str = Form(""), product_info: str
                  links_file: UploadFile | None = File(None), videos: list[UploadFile] = File(default=[]),
                  product_photo_file: UploadFile | None = File(None), opt_subs: str = Form(""),
                  opt_music: str = Form("none"), opt_sizes: str = Form(""), opt_ab: str = Form(""),
-                 merge: str = Form(""), mode: str = Form("dub")):
+                 merge: str = Form(""), mode: str = Form("dub"), opt_clean: str = Form("")):
     batch = time.strftime("%m%d-%H%M") + "-" + uuid.uuid4().hex[:4]
     up = DATA / "uploads" / batch
     up.mkdir(parents=True, exist_ok=True)
@@ -552,7 +558,8 @@ async def submit(request: Request, links_text: str = Form(""), product_info: str
                        1 if auto_approve else 0, 1 if make_images else 0, "queued", "", "", now + i * 1e-3, now,
                        json.dumps({"subs": 1 if opt_subs else 0, "music": opt_music or "none",
                                    "sizes": 1 if opt_sizes else 0, "ab": 1 if opt_ab else 0,
-                                   "mode": mode if mode in ("dub", "captions") else "dub"}),
+                                   "mode": mode if mode in ("dub", "captions") else "dub",
+                                   "clean": 1 if opt_clean else 0}),
                        request.state.user["username"]))
     return RedirectResponse(f"/?batch={batch}", status_code=303)
 
@@ -604,6 +611,19 @@ async def save(request: Request, job_id: str):
     old = {f["t"]: f.get("box") for f in (j["plan"] or {}).get("frames") or []}
     plan["frames"] = [{"t": t, "box": old.get(round(t, 2))}
                       for t in _floats(x for x in (form.get("frames") or "").replace("،", ",").split(",") if x.strip())]
+    # الكتابة المطبوعة اللي خاصها تتمسح: سطر لكل وحدة "من-حتى: ymin,xmin,ymax,xmax" (من 0 حتى 1000)
+    if "text_boxes" in form:
+        boxes = []
+        for line in (form.get("text_boxes") or "").replace("،", ",").splitlines():
+            if ":" not in line:
+                continue
+            rng, box = line.split(":", 1)
+            try:
+                a, b = (rng.split("-", 1) + ["0"])[:2] if "-" in rng else (rng, "99999")
+                boxes.append({"start": float(a), "end": float(b), "box": [float(v) for v in box.split(",")]})
+            except ValueError:
+                continue
+        plan["text_boxes"] = boxes
     plan = P.normalize_plan(plan, P.duration(work_video(job_id)))
     action = form.get("action", "save")
     fields = {"plan": plan, "plan_prev": j["plan"], "voice": form.get("voice") or j["voice"],

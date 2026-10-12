@@ -206,6 +206,7 @@ PLAN_SCHEMA_TEXT = """
   ],
   "frames": [{"t": 4.2, "box": [ymin, xmin, ymax, xmax]}],  // 2 حتى 3 لقطات للتصاور الإعلانية (شوف القواعد التحت)
   "hooks": ["جملة بداية بديلة 1", "جملة بداية بديلة 2"],  // 2 hooks مختلفين (أسلوب آخر) بلاصة الجملة الأولى، للتجربة A/B
+  "text_boxes": [{"start": 0.0, "end": 12.0, "box": [ymin, xmin, ymax, xmax]}],  // كتابة مطبوعة فالفيديو (صينية، إنجليزية، لوغو، ترجمة...) باش نمسحوها. [] إلا ماكاينة
   "ad": {"headline": "عنوان قصير وقوي للتصويرة (4 حتى 7 كلمات)", "price": "الثمن بالأرقام مثلا 199 درهم، ولا خاوي إلا ماكانش", "cta": "اطلب دابا", "badge": "الخلاص عند الاستلام"},
   "notes": "شرح قصير بالدارجة لشنو تبدل"
 }
@@ -214,6 +215,10 @@ PLAN_SCHEMA_TEXT = """
   (ماشي لقطة فيها غير شخص كيستعمل المنتوج من بعيد، وماشي لقطة كحلة ولا فيها انتقال).
   ختار لقطات مختلفة (زوايا ولا ألوان مختلفة إلا كانت). box هو المربع اللي فيه المنتوج فداك اللقطة،
   بالأرقام من 0 حتى 1000 بهاد الترتيب: [ymin, xmin, ymax, xmax].
+- text_boxes: أي كتابة مطبوعة فوق الفيديو (ترجمة صينية ولا إنجليزية، لوغو، ووترمارك، ثمن، سمية متجر...).
+  لكل وحدة: من فوقاش حتى فوقاش كتبان (start/end بالثواني) والمربع اللي كتشغلو [ymin, xmin, ymax, xmax] من 0 حتى 1000،
+  مع هامش صغير على الجوانب. إلا كانت الترجمة الصينية كتبدل الجمل ولكن ديما فنفس البلاصة، رجّع مربع واحد كيغطي الزونة كاملة طول الفيديو.
+  ماتحطش المنتوج ولا الكتابة اللي على المنتوج نفسو (الباكاج) فـ text_boxes.
 """
 
 SCRIPT_RULES = """
@@ -278,10 +283,70 @@ def normalize_plan(plan, dur):
         frames.append({"t": round(t, 2), "box": box})
     plan["frames"] = frames[:4]
     plan["hooks"] = [str(x).strip() for x in (plan.get("hooks") or []) if str(x).strip()][:2]
+    plan["text_boxes"] = normalize_boxes(plan.get("text_boxes"), dur)
     ad = plan.get("ad") or {}
     plan["ad"] = {"headline": ad.get("headline") or plan["product"], "price": ad.get("price") or "",
                   "cta": ad.get("cta") or "اطلب دابا", "badge": ad.get("badge") or "الخلاص عند الاستلام"}
     return plan
+
+
+def normalize_boxes(boxes, dur):
+    out = []
+    for tb in boxes or []:
+        try:
+            a, b = max(0.0, float(tb.get("start", 0))), min(dur, float(tb.get("end", dur)))
+            box = [min(1000.0, max(0.0, float(v))) for v in tb["box"]]
+            if len(box) != 4 or box[2] - box[0] < 10 or box[3] - box[1] < 10 or b - a < 0.2:
+                continue
+            out.append({"start": round(a, 2), "end": round(b, 2), "box": [round(v) for v in box]})
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+    return out[:8]
+
+
+def clean_filter(boxes, w, h, cuts=(), speed=1.0, pad=0.012):
+    """فلتر FFmpeg كيمسح الكتابة المطبوعة (delogo) فالمربعات وفالوقت ديالها. كيرجع لائحة فلاتر."""
+    out = []
+    for tb in boxes or []:
+        y0, x0, y1, x1 = tb["box"]
+        x = max(1, int((x0 / 1000 - pad) * w)); y = max(1, int((y0 / 1000 - pad) * h))
+        bw = min(w - x - 1, int((x1 - x0) / 1000 * w + 2 * pad * w)); bh = min(h - y - 1, int((y1 - y0) / 1000 * h + 2 * pad * h))
+        if bw < 4 or bh < 4:
+            continue
+        a, b = map_time(tb["start"], cuts, speed), map_time(tb["end"], cuts, speed)
+        if b - a < 0.1:
+            continue
+        out.append(f"delogo=x={x}:y={y}:w={bw}:h={bh}:enable='between(t,{a:.2f},{b + 0.05:.2f})'")
+    return out
+
+
+def find_text_boxes(video: Path):
+    """وضع كابشن: Gemini كيقلب غير على الكتابة المطبوعة فالفيديو (بلا سكريبت)."""
+    dur = duration(video)
+    if MOCK:
+        return normalize_boxes([{"start": 0, "end": dur, "box": [880, 100, 960, 900]}], dur)
+    from google.genai import types
+    client = _gemini_client()
+    f = client.files.upload(file=str(video))
+    while f.state and f.state.name == "PROCESSING":
+        time.sleep(3)
+        f = client.files.get(name=f.name)
+    if f.state and f.state.name == "FAILED":
+        raise RuntimeError("Gemini ماقدرش يقرا الفيديو")
+    prompt = f"""شوف هاد الفيديو (الطول {dur:.1f} ثانية) وقلب على أي كتابة مطبوعة فوقو: ترجمة صينية ولا إنجليزية،
+لوغو، ووترمارك، سمية متجر، ثمن... (ماشي الكتابة اللي على المنتوج نفسو).
+لكل وحدة رجّع من فوقاش حتى فوقاش كتبان والمربع اللي كتشغلو [ymin, xmin, ymax, xmax] من 0 حتى 1000 مع هامش صغير.
+إلا كانت الترجمة كتبدل ولكن ديما فنفس البلاصة، رجّع مربع واحد كيغطي الزونة كاملة طول الفيديو.
+رجّع JSON فقط: {{"text_boxes": [{{"start": 0.0, "end": {dur:.1f}, "box": [ymin, xmin, ymax, xmax]}}]}} ([] إلا ماكاينة)"""
+    resp = client.models.generate_content(
+        model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"), contents=[f, prompt],
+        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1),
+    )
+    try:
+        client.files.delete(name=f.name)
+    except Exception:
+        pass
+    return normalize_boxes(_parse_json(resp.text).get("text_boxes"), dur)
 
 
 def analyze(video: Path, product_info="", instruction="", photo=None):
@@ -295,6 +360,7 @@ def analyze(video: Path, product_info="", instruction="", photo=None):
                                "ad": {"headline": "كرسي مريح للظهر بجودة عالية", "price": "199 درهم"},
                                "frames": [{"t": dur * 0.3, "box": [200, 250, 800, 750]}, {"t": dur * 0.7, "box": None}],
                                "hooks": ["جملة بداية بديلة واحد", "جملة بداية بديلة جوج"],
+                               "text_boxes": [{"start": 0, "end": dur, "box": [880, 100, 960, 900]}],
                                "notes": "تجربة"}, dur)
     from google.genai import types
     from PIL import Image
@@ -379,7 +445,7 @@ def words_to_segments(words, gap=0.7, max_words=10):
     return [{"start": c[0]["s"], "end": c[-1]["e"], "text": " ".join(x["w"] for x in c)} for c in segs]
 
 
-def render_captions(src: Path, segments, work: Path, out: Path, music: Path = None, orig_volume=1.0):
+def render_captions(src: Path, segments, work: Path, out: Path, music: Path = None, orig_volume=1.0, boxes=None):
     """وضع كابشن: نفس الفيديو ونفس الصوت الأصلي + الترجمة كلمة بكلمة (+ موسيقى اختيارية)."""
     w, h = video_size(src)
     cap = int(os.getenv("MAX_SHORT_SIDE", "1080"))
@@ -393,7 +459,9 @@ def render_captions(src: Path, segments, work: Path, out: Path, music: Path = No
     cmd = ["ffmpeg", "-y", "-i", str(src)]
     if music:
         cmd += ["-stream_loop", "-1", "-i", str(music)]
-    filt = [f"[0:v]scale={w}:{h},setsar=1,ass='{ass}':fontsdir='{Path(__file__).parent / 'fonts'}',format=yuv420p[v]"]
+    vf = [f"scale={w}:{h}", "setsar=1", *clean_filter(boxes, w, h),
+          f"ass='{ass}':fontsdir='{Path(__file__).parent / 'fonts'}'", "format=yuv420p"]
+    filt = ["[0:v]" + ",".join(vf) + "[v]"]
     if has_audio(src):
         if music:
             mv = float(os.getenv("MUSIC_VOLUME", "0.18"))
@@ -472,7 +540,7 @@ def map_time(t, cuts, speed):
     return (t - removed) / speed
 
 
-def render_final(src: Path, plan, voice_id, work: Path, out: Path, subs=True, music: Path = None):
+def render_final(src: Path, plan, voice_id, work: Path, out: Path, subs=True, music: Path = None, clean=True):
     """كلشي فـ encode واحد: القص + التسريع + التعليق + الموسيقى + الترجمة. (أسرع جوج حتى 3 مرات)"""
     dur = duration(src)
     ranges = keep_ranges(plan["cuts"], dur)
@@ -495,6 +563,8 @@ def render_final(src: Path, plan, voice_id, work: Path, out: Path, subs=True, mu
     labels = "".join(f"[{i}:v]" + (f"[{i}:a]" if audio else "") for i in range(n))
     filt.append(labels + f"concat=n={n}:v=1:a={1 if audio else 0}[vc]" + ("[ac]" if audio else ""))
     vf = [f"setpts=PTS/{speed:.4f}", f"scale={w}:{h}", "setsar=1"]
+    if clean:
+        vf += clean_filter(plan.get("text_boxes"), w, h, plan["cuts"], speed)
     if total - edited_dur > 0.05:
         vf.append(f"tpad=stop_mode=clone:stop_duration={total - edited_dur + 0.3:.3f}")
     if subs:

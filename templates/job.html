@@ -87,7 +87,13 @@
     <label class="chk"><input type="checkbox" name="opt_subs" value="1" {% if j.opts.subs %}checked{% endif %}> 💬 ترجمة مكتوبة على الفيديو</label>
     <label class="chk"><input type="checkbox" name="opt_sizes" value="1" {% if j.opts.sizes %}checked{% endif %}> 📐 3 مقاسات (9:16، 1:1، 4:5)</label>
     <label class="chk"><input type="checkbox" name="opt_ab" value="1" {% if j.opts.ab %}checked{% endif %}> 🅰🅱 نسخ A/B بـ hooks مختلفين</label>
+    <label class="chk"><input type="checkbox" name="opt_clean" value="1" {% if j.opts.clean %}checked{% endif %}> 🧹 مسح الكتابة الأجنبية من الفيديو {% if j.plan.text_boxes %}<span class="badge b-done">لقا {{j.plan.text_boxes|length}}</span>{% endif %}</label>
   </div>
+  <details style="margin-top:6px"><summary class="small muted">الزونات ديال الكتابة اللي غتتمسح ({{j.plan.text_boxes|length}}) — بدّلهم إلا بغيتي</summary>
+    <textarea name="text_boxes" style="direction:ltr;text-align:left;font-family:monospace;font-size:13px;min-height:60px" placeholder="0-12: 880,100,960,900">{% for b in j.plan.text_boxes or [] %}{{b.start}}-{{b.end}}: {{b.box|join(',')}}
+{% endfor %}</textarea>
+    <div class="hint">سطر لكل زونة: <code>من-حتى: فوق,يسار,تحت,يمين</code> بالأرقام من 0 حتى 1000 (مثلا الترجمة الصينية تحت: <code>0-99: 880,50,960,950</code>). خليها خاوية = ماكاينة كتابة.</div>
+  </details>
   <label>🎵 الموسيقى</label>
   <select name="opt_music">
     <option value="none" {% if j.opts.music=='none' %}selected{% endif %}>بلا موسيقى</option>
