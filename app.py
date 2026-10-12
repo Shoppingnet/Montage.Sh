@@ -37,13 +37,17 @@ STATUS_AR = {
 }
 
 
+# الأصوات ديال ElevenLabs المدمجة (الأول هو الافتراضي). زيد أصوات أخرى من .env: VOICES="سمية=id;سمية=id"
+DEFAULT_VOICES = [("MASTER ADS VOICE", "4GrPPhyFD4Md4Rvs3kqR"), ("Nadia Voice over", "49VuA3myzE2yy2ju10HL")]
+
+
 def voices():
-    raw = os.getenv("VOICES", "MASTER ADS VOICE=4GrPPhyFD4Md4Rvs3kqR")
-    out = []
-    for item in raw.split(";"):
+    out = list(DEFAULT_VOICES)
+    for item in os.getenv("VOICES", "").split(";"):
         if "=" in item:
             n, v = item.split("=", 1)
-            out.append((n.strip(), v.strip()))
+            if v.strip() and v.strip() not in {x[1] for x in out}:
+                out.append((n.strip(), v.strip()))
     return out
 
 
