@@ -691,6 +691,9 @@ async def pages_new(request: Request):
     angle = form.get("angle") or ""
     content = P.write_landing(info, angle, j["plan"] if j else None, product_photo(job_id) if j else None)
     video, images = _collect_media(slug, job_id) if j else ("", [])
+    ph = product_photo(job_id) if j else None
+    if ph and content.get("image_prompts"):
+        images = P.gen_product_images(ph, content["image_prompts"], _page_dir(slug)) + images
     price = form.get("price") or content.get("price") or ((j["plan"] or {}).get("ad", {}).get("price") if j else "") or ""
     L.save_page(slug, name=name, product_ref=form.get("product_ref") or name, price=price, angle=angle,
                 product_info=info, job_id=job_id, content=content, images=images, published=1)
@@ -734,6 +737,17 @@ async def page_save(request: Request, slug: str):
         j = get(p["job_id"]) if p["job_id"] else None
         fields["content"] = P.write_landing(p["product_info"], fields["angle"], j["plan"] if j else None,
                                             product_photo(p["job_id"]) if j else None)
+    if action == "images":
+        ph = (L.PAGES / slug / "product.jpg")
+        if not ph.exists() and p["job_id"]:
+            ph = product_photo(p["job_id"])
+        if not ph or not ph.exists():
+            raise HTTPException(400, "خاص تصويرة المنتوج الحقيقية (رفعها ولا جيبها من فيديو)")
+        prompts = p["content"].get("image_prompts") or ["product on a clean studio background",
+                                                          "product being used at home, lifestyle",
+                                                          "close-up detail of the product", "product with accessories"]
+        ai = P.gen_product_images(ph, prompts, L.PAGES / slug)
+        fields["images"] = ai + [im for im in p["images"] if not im.startswith("ai_")]
     if action == "media" and form.get("job_id"):
         video, images = _collect_media(slug, form["job_id"])
         fields["job_id"] = form["job_id"]
@@ -750,7 +764,7 @@ async def page_photo(slug: str, photo: UploadFile = File(...)):
     if not p:
         raise HTTPException(404)
     d = _page_dir(slug)
-    name = f"img_{uuid.uuid4().hex[:6]}.jpg"
+    name = "product.jpg" if not (d / "product.jpg").exists() else f"img_{uuid.uuid4().hex[:6]}.jpg"
     save_photo(await photo.read(), d / name)
     L.save_page(slug, images=p["images"] + [name])
     return RedirectResponse(f"/pages/{slug}", status_code=303)

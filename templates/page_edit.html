@@ -40,6 +40,9 @@
     </div>
     <h3 style="margin-top:18px"><span class="title-ico">🔁</span>عاود كتب بزاوية أخرى</h3>
     <div class="row"><input type="text" name="angle" value="{{p.angle}}" placeholder="زاوية البيع" style="flex:1;min-width:160px"><button class="btn sm dark" name="action" value="regen" onclick="return confirm('غيتبدل المحتوى كامل. متأكد؟')">✨ عاود كتب</button></div>
+    <h3 style="margin-top:18px"><span class="title-ico">🍌</span>تصاور AI (Nano Banana)</h3>
+    <p class="small muted" style="margin:0 0 6px">4 تصاور إعلانية من تصويرة المنتوج الحقيقية (hero، استعمال، تفاصيل، إكسسوارات). الصورة الأولى كتولي hero ديال الصفحة.</p>
+    <button class="btn sm dark" name="action" value="images" onclick="return confirm('غيتصاوبو 4 تصاور جداد (كيتخلصو). نكمل؟')">🍌 صاوب التصاور</button>
     <h3 style="margin-top:18px"><span class="title-ico">🎬</span>الفيديو والتصاور من فيديو مدبلج</h3>
     <div class="row"><select name="job_id" style="flex:1;min-width:160px"><option value="">— اختار —</option>{% for j in jobs %}<option value="{{j.id}}" {% if j.id==p.job_id %}selected{% endif %}>{{j.name}}</option>{% endfor %}</select><button class="btn sm" name="action" value="media">جيب</button></div>
   </form>

@@ -128,7 +128,10 @@ def landing_page(request: Request, slug: str):
         raise HTTPException(404, "الصفحة ماكايناش")
     with db() as c:
         c.execute("UPDATE pages SET views=views+1 WHERE slug=?", (slug,))
-    return T.TemplateResponse(request, "landing.html", {"p": p, "sent": request.query_params.get("ok")})
+    ai = [im for im in p["images"] if im.startswith("ai_")]
+    others = [im for im in p["images"] if not im.startswith("ai_")]
+    return T.TemplateResponse(request, "landing.html", {"p": p, "ai": ai, "others": others,
+                                                        "sent": request.query_params.get("ok")})
 
 
 @public.get("/{slug}/media/{name}")

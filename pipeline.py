@@ -879,8 +879,35 @@ LANDING_SCHEMA = """
 """
 
 
+def _claude_client():
+    import anthropic
+    return anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
+def _image_block(photo):
+    import base64
+    from io import BytesIO
+    from PIL import Image
+    im = Image.open(photo).convert("RGB")
+    im.thumbnail((1200, 1200))
+    buf = BytesIO()
+    im.save(buf, "JPEG", quality=85)
+    return {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                        "data": base64.standard_b64encode(buf.getvalue()).decode()}}
+
+
+LANDING_SYSTEM = """نتا كوبيرايتر محترف ديال صفحات الهبوط للتجارة الإلكترونية فالمغرب (الدفع عند الاستلام، الزبون كيقرا فالتلفون).
+كتكتب بالدارجة المغربية بالحروف العربية، بحال شي واحد مغربي كيهضر مع صاحبو: ماشي فصحى، ماشي ترجمة حرفية.
+القواعد:
+- hook قوي فالعنوان، كيهضر على الفائدة ولا المشكل، ماشي على المنتوج.
+- جمل قصار. فقرة = 2 حتى 3 جمل. بلا حشو.
+- ماتخترعش مميزات ولا أرقام ماكايناش فالمعلومات. إلا ماكانش الثمن خلي price خاوي.
+- الأرقام بالأرقام (199 درهم). الآراء ديال الزبناء خليهم واقعيين وقصار، بأسامي ومدن مغربية.
+- رجّع JSON فقط، بلا شرح وبلا ```."""
+
+
 def write_landing(product_info, angle="", plan=None, photo=None):
-    """Gemini كيكتب المحتوى ديال صفحة الهبوط بالدارجة بزاوية البيع المختارة."""
+    """Claude كيكتب المحتوى ديال صفحة الهبوط (Gemini كبديل إلا ماكانش مفتاح Claude)."""
     if MOCK:
         return {"title": "منتوج زوين كيحل ليك المشكل", "subtitle": "ساهل، سريع، وبثمن مناسب", "angle": angle or "الراحة",
                 "price": "199 درهم", "old_price": "299 درهم", "cta": "اطلب دابا والخلاص عند الاستلام",
@@ -891,23 +918,86 @@ def write_landing(product_info, angle="", plan=None, photo=None):
                 "how": ["اطلب", "كنتصلو بيك", "كتوصلك"],
                 "social": [{"name": "فاطمة", "city": "الدار البيضاء", "text": "زوين بزاف، نصح بيه"}],
                 "faq": [{"q": "شحال التوصيل؟", "a": "فابور فجميع المدن"}],
-                "urgency": "الكمية محدودة", "guarantee": "ضمان الإرجاع 7 أيام"}
+                "urgency": "الكمية محدودة", "guarantee": "ضمان الإرجاع 7 أيام",
+                "image_prompts": ["product on a clean white studio background, soft light",
+                                  "product being used at home, lifestyle, warm light",
+                                  "close-up detail of the product texture",
+                                  "product with its accessories laid out on a table"]}
+    script = "\n".join(s["text"] for s in plan["segments"]) if plan and plan.get("segments") else ""
+    user = f"""معلومات المنتوج: {product_info or "ماكاينش (شوف التصويرة)"}
+زاوية البيع المطلوبة: {angle or "ختار أحسن زاوية نتا"}
+{"التعليق ديال الفيديو الإعلاني (خلي الصفحة متناسقة معاه): " + script if script else ""}
+{LANDING_SCHEMA}
+زيد فالـ JSON حقل "image_prompts": 4 أوصاف بالإنجليزية لتصاور إعلانية ديال هاد المنتوج (نفس المنتوج بالضبط، بلا نص فالصورة):
+1) hero: المنتوج بوحدو فستوديو نقي، 2) lifestyle: شخص مغربي كيستعملو فسياق حقيقي، 3) تفاصيل مقربة، 4) المنتوج مع المميزات/الإكسسوارات."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        return _write_landing_gemini(product_info, angle, plan, photo)
+    client = _claude_client()
+    content = ([_image_block(photo)] if photo else []) + [{"type": "text", "text": user}]
+    resp = client.messages.create(
+        model=os.getenv("CLAUDE_MODEL", "claude-opus-5-5"), max_tokens=16000, system=LANDING_SYSTEM,
+        messages=[{"role": "user", "content": content}],
+        output_config={"effort": "medium"},
+    )
+    if resp.stop_reason == "refusal":
+        raise RuntimeError("Claude رفض يكتب هاد الصفحة")
+    text = "".join(b.text for b in resp.content if b.type == "text")
+    return _parse_json(text)
+
+
+def _write_landing_gemini(product_info, angle, plan, photo):
     from google.genai import types
     from PIL import Image
     client = _gemini_client()
-    script = ""
-    if plan and plan.get("segments"):
-        script = "\n".join(s["text"] for s in plan["segments"])
-    prompt = f"""نتا كوبيرايتر محترف ديال صفحات الهبوط للتجارة الإلكترونية فالمغرب (الدفع عند الاستلام).
-اكتب محتوى صفحة هبوط بالدارجة المغربية (حروف عربية)، تبيع، قصيرة، وتخدم مزيان فالتلفون.
+    script = "\n".join(s["text"] for s in plan["segments"]) if plan and plan.get("segments") else ""
+    prompt = f"""{LANDING_SYSTEM}
 معلومات المنتوج: {product_info or "ماكاينش"}
 زاوية البيع المطلوبة: {angle or "ختار أحسن زاوية نتا"}
-{"التعليق ديال الفيديو الإعلاني (خليه متناسق معاه): " + script if script else ""}
-- ماتخترعش مميزات ماكايناش فالمعلومات. إلا ماكانش الثمن، خلي price خاوي.
-- الأرقام بالأرقام. بلا فصحى.
-{LANDING_SCHEMA}"""
+{"التعليق ديال الفيديو: " + script if script else ""}
+{LANDING_SCHEMA}
+زيد حقل "image_prompts": 4 أوصاف بالإنجليزية لتصاور إعلانية ديال المنتوج (hero / lifestyle / close-up / accessories)."""
     contents = ([Image.open(photo)] if photo else []) + [prompt]
     resp = client.models.generate_content(model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"), contents=contents,
                                           config=types.GenerateContentConfig(response_mime_type="application/json",
                                                                              temperature=0.8))
     return _parse_json(resp.text)
+
+
+IMAGE_STYLE = ("Professional e-commerce advertising photo, photorealistic, sharp, 4:5 vertical, "
+               "keep the exact same product from the reference photo (same shape, colors, printed text, logo). "
+               "No added text, no watermark, no extra products.")
+
+
+def gen_product_images(photo: Path, prompts, out_dir: Path, max_n=4):
+    """Nano Banana (Gemini Image): كيصاوب تصاور إعلانية من تصويرة المنتوج الحقيقية. كيرجع ليستة ديال الملفات."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    made = []
+    if MOCK:
+        from PIL import Image, ImageDraw
+        for i, pr in enumerate(prompts[:max_n], 1):
+            im = Image.open(photo).convert("RGB").resize((864, 1080))
+            ImageDraw.Draw(im).rectangle((0, 0, 864, 60), fill=(200, 200, 200))
+            p = out_dir / f"ai_{i}.jpg"
+            im.save(p, quality=85)
+            made.append(p.name)
+        return made
+    from io import BytesIO
+    from PIL import Image
+    client = _gemini_client()
+    ref = Image.open(photo).convert("RGB")
+    ref.thumbnail((1024, 1024))
+    for i, pr in enumerate(prompts[:max_n], 1):
+        try:
+            resp = client.models.generate_content(model=os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-lite-image"),
+                                                  contents=[ref, f"{pr}. {IMAGE_STYLE}"])
+            for part in resp.candidates[0].content.parts:
+                if getattr(part, "inline_data", None) and part.inline_data.data:
+                    img = Image.open(BytesIO(part.inline_data.data)).convert("RGB")
+                    img.thumbnail((1200, 1500))
+                    p = out_dir / f"ai_{i}.jpg"
+                    img.save(p, quality=88)
+                    made.append(p.name)
+                    break
+        except Exception as e:  # noqa — صورة وحدة فشلات ماتوقفش الباقي
+            (out_dir / f"ai_{i}_error.txt").write_text(str(e)[:500])
+    return made
