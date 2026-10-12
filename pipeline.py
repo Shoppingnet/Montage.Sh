@@ -390,8 +390,41 @@ def analyze(video: Path, product_info="", instruction="", photo=None):
     return normalize_plan(_parse_json(resp.text), dur)
 
 
+TRANSCRIBE_RULES = """- الدارجة والعربية بالحروف العربية كيف ما تنطقات بالضبط (ماتترجمش، ماتصححش للفصحى، ماتحيدش التكرار ولا "ايوا"/"يعني").
+- الكلمات بالفرنسية ولا الإنجليزية خليها بالحروف اللاتينية كيف ما تنطقات (ماتكتبهاش بالعربية).
+- الأرقام اكتبها بالأرقام (199).
+- التوقيت بالثواني بدقة (s = البداية، e = النهاية) من بداية هاد المقطع، ماتخليش فراغات كبار بين الكلمات."""
+
+
+def _silence_chunks(wav: Path, dur, max_len=30.0, min_len=8.0):
+    """كيقطع الصوت لمقاطع 8-30 ثانية عند السكوت (ماشي وسط كلمة): Gemini كيعطي توقيت أدق على مقاطع قصار."""
+    if dur <= max_len:
+        return [(0.0, dur)]
+    r = subprocess.run(["ffmpeg", "-nostats", "-i", str(wav), "-af", "silencedetect=noise=-35dB:d=0.3", "-f", "null", "-"],
+                       capture_output=True, text=True, timeout=600)
+    out = r.stderr
+    sil = [float(m) for m in re.findall(r"silence_start: ([\d.]+)", out)]
+    ends = [float(m) for m in re.findall(r"silence_end: ([\d.]+)", out)]
+    mids = sorted((a + b) / 2 for a, b in zip(sil, ends) if b > a)
+    chunks, start = [], 0.0
+    for m in mids:
+        if m - start >= min_len:
+            chunks.append((start, m))
+            start = m
+        elif m - start > max_len:
+            chunks.append((start, start + max_len))
+            start = start + max_len
+    while dur - start > max_len:
+        chunks.append((start, start + max_len))
+        start += max_len
+    if dur - start > 0.3:
+        chunks.append((start, dur))
+    return chunks
+
+
 def transcribe(video: Path):
-    """وضع 'كابشن': واحد كيهضر فالفيديو. Gemini كيسمع وكيرجع كل كلمة بالدارجة (حروف عربية) مع التوقيت ديالها."""
+    """وضع 'كابشن': واحد كيهضر فالفيديو. Gemini كيسمع كل مقطع (8-30 ثانية) وكيرجع كل كلمة مع التوقيت ديالها.
+    من بعد (اختياري WHISPERX=1) forced alignment محلي كيدقق توقيت كل كلمة على الصوت."""
     dur = duration(video)
     if MOCK:
         words = "سلام عليكم هاد المنتوج زوين بزاف و الثمن غير ميا و تسعة و تسعين درهم".split()
@@ -399,37 +432,38 @@ def transcribe(video: Path):
         return [{"w": w, "s": round(i * step, 2), "e": round((i + 1) * step, 2)} for i, w in enumerate(words)]
     from google.genai import types
     client = _gemini_client()
-    f = client.files.upload(file=str(video))
-    while f.state and f.state.name == "PROCESSING":
-        time.sleep(3)
-        f = client.files.get(name=f.name)
-    if f.state and f.state.name == "FAILED":
-        raise RuntimeError("Gemini ماقدرش يقرا الفيديو")
-    prompt = f"""اسمع الكلام اللي فهاد الفيديو (الطول {dur:.1f} ثانية) واكتبو كلمة بكلمة مع التوقيت ديال كل كلمة.
-- الدارجة والعربية بالحروف العربية كيف ما تنطقات (ماتترجمش وماتصححش للفصحى).
-- الكلمات بالفرنسية ولا الإنجليزية خليها بالحروف اللاتينية كيف ما تنطقات.
-- الأرقام اكتبها بالأرقام (199).
-- التوقيت بالثواني بدقة (s = البداية، e = النهاية)، ماتخليش فراغات كبار بين الكلمات.
-رجّع JSON فقط: {{"words": [{{"w": "الكلمة", "s": 0.0, "e": 0.4}}, ...]}}"""
-    resp = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"), contents=[f, prompt],
-        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1),
-    )
-    try:
-        client.files.delete(name=f.name)
-    except Exception:
-        pass
+    wav = video.with_name("speech16k.wav")
+    run(["ffmpeg", "-y", "-i", str(video), "-vn", "-ac", "1", "-ar", "16000", str(wav)])
     out = []
-    for w in _parse_json(resp.text).get("words") or []:
-        try:
-            s_, e = float(w["s"]), float(w["e"])
-            if str(w.get("w", "")).strip() and e > s_ >= 0:
-                out.append({"w": str(w["w"]).strip(), "s": round(min(s_, dur), 2), "e": round(min(e, dur), 2)})
-        except (KeyError, TypeError, ValueError):
-            continue
+    for a, b in _silence_chunks(wav, dur):
+        part = video.with_name("chunk.wav")
+        run(["ffmpeg", "-y", "-ss", f"{a:.3f}", "-t", f"{b - a:.3f}", "-i", str(wav), str(part)])
+        prompt = f"""اسمع الكلام اللي فهاد المقطع الصوتي (الطول {b - a:.1f} ثانية، كيبدا فالثانية {a:.1f} من الفيديو) واكتبو كلمة بكلمة كيف ما تنطق بالضبط مع التوقيت ديال كل كلمة.
+{TRANSCRIBE_RULES}
+رجّع JSON فقط: {{"words": [{{"w": "الكلمة", "s": 0.0, "e": 0.4}}, ...]}} ([] إلا ماكاين حتى كلام)"""
+        resp = client.models.generate_content(
+            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+            contents=[types.Part.from_bytes(data=part.read_bytes(), mime_type="audio/wav"), prompt],
+            config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1),
+        )
+        for w in _parse_json(resp.text).get("words") or []:
+            try:
+                s_, e = float(w["s"]) + a, float(w["e"]) + a
+                if str(w.get("w", "")).strip() and e > s_ >= 0:
+                    out.append({"w": str(w["w"]).strip(), "s": round(min(s_, dur), 2), "e": round(min(e, dur), 2)})
+            except (KeyError, TypeError, ValueError):
+                continue
+        part.unlink(missing_ok=True)
     if not out:
         raise RuntimeError("Gemini مالقا حتى كلام فالفيديو")
-    return sorted(out, key=lambda x: x["s"])
+    out.sort(key=lambda x: x["s"])
+    if os.getenv("WHISPERX", "0") == "1":
+        try:
+            import align
+            out = align.refine(wav, out)
+        except Exception as e:  # noqa: whisperx ماشي ضروري، إلا طاح كنخليو توقيت Gemini
+            print("whisperx alignment skipped:", e)
+    return out
 
 
 def words_to_segments(words, gap=0.7, max_words=10):
