@@ -31,3 +31,7 @@ Forbidden: ElevenLabs/HeyGen/Higgsfield, campaigns, spending, publishing, writin
 - Create it at the start with all your REFs as TODO. Update it each time a product changes status (at least after every product).
 - At the start of the session, and after ANY restart or context summary, READ your log first and continue from the first REF that is not DONE/INSUFFICIENT. Never redo a DONE product unless Top asks.
 - Only touch REFs of your own letter. The coordinator session reads all three logs and reports totals to Top.
+
+## Thumbnails in the shared gallery + sheet column
+- Gallery artifact: https://claude.ai/artifact/UQRMBjyJVSN5FB6exr7PfD (index.html + covers/<REF>.jpg). After every 5 finished videos: Artifact read that URL, then publish to the same `url` adding `covers/<REF>.jpg` files (files map; keep the existing ones) and a matching `<figure class="card">` for each new REF in index.html (same markup as the existing cards).
+- Sheet 1WPUIxlQKlJIzuT9NtazaI2XLwyirTY67TVWGZVmNffM, tab «جاهزين للمونتاج»: for each finished REF (column C), write column V = `https://claude.ai/artifact/UQRMBjyJVSN5FB6exr7PfD ← covers/<REF>.jpg` and column W = `جاهز بالكادر + thumbnail`. Only columns V and W, only your own REFs.
