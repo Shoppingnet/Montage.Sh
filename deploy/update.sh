@@ -8,8 +8,17 @@ cd "$APP_DIR"
 git config credential.helper store
 git pull --ff-only
 "$APP_DIR/venv/bin/pip" install -q -r requirements.txt
-# بلا MemoryHigh: كان كيبطّئ الخدمة حتى كتولي مبلوكية. MemoryMax كيبقا باش Odoo مايتضررش
-systemctl set-property darija-dubbing MemoryHigh=infinity MemoryMax=1600M 2>/dev/null || true
+# الحدود: من /etc/montage/limits.conf (install.sh كيكتبو على حساب السيرفر)، وإلا الحدود القدام ديال السيرفر المشارك
+MEM_MAX=1600M; [ -f /etc/montage/limits.conf ] && . /etc/montage/limits.conf
+systemctl set-property darija-dubbing MemoryHigh=infinity MemoryMax=$MEM_MAX 2>/dev/null || true
+# أوامر "مرة وحدة" (deploy/once/*.sh): كنشغلو كل واحد مرة وحدة فقط، باش نقدر نصلح من GitHub بلا Console
+DONE="$APP_DIR/data/.once-done"; mkdir -p "$APP_DIR/data"; touch "$DONE"
+for f in "$APP_DIR"/deploy/once/*.sh; do
+  [ -f "$f" ] || continue
+  n=$(basename "$f")
+  grep -qx "$n" "$DONE" && continue
+  echo ">> once: $n"; bash "$f" && echo "$n" >> "$DONE" || echo "!! $n طاح"
+done
 # إلا شي فيديو كلا الذاكرة كاملة، يتقتل هو بوحدو، والصفحة تبقا خدامة (بلا ما systemd يطفي الخدمة كاملة)
 mkdir -p /etc/systemd/system/darija-dubbing.service.d
 printf '[Service]\nOOMPolicy=continue\nNice=5\n' > /etc/systemd/system/darija-dubbing.service.d/override.conf

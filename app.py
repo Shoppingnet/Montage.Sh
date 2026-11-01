@@ -1,4 +1,5 @@
 """نظام الدبلجة بالدارجة — واجهة الويب + الخدامة اللي كيعالجو الفيديوهات فالخلفية."""
+import hmac
 import json
 import os
 import shutil
@@ -363,6 +364,11 @@ async def _auth_mw(request: Request, call_next):
     if path == "/p" or path.startswith(OPEN_PATHS):
         return await call_next(request)
     u = U.user_from_request(request)
+    tok = os.getenv("API_TOKEN", "")
+    auth = request.headers.get("authorization", "")
+    if not u and tok and auth.startswith("Bearer ") and hmac.compare_digest(auth[7:].strip(), tok):
+        # الموظفين الآليين (الوكلاء) كيدخلو بمفتاح API_TOKEN من .env
+        u = {"id": 0, "username": "api", "name": "API", "role": "staff", "active": 1}
     if not u:
         if path.startswith("/api/"):
             return JSONResponse({"error": "login"}, status_code=401)
@@ -565,6 +571,10 @@ async def submit(request: Request, links_text: str = Form(""), product_info: str
                                    "mode": mode if mode in ("dub", "captions") else "dub",
                                    "clean": 1 if opt_clean else 0}),
                        request.state.user["username"]))
+    if request.state.user["username"] == "api" or "application/json" in request.headers.get("accept", ""):
+        with db() as c:
+            ids = [r["id"] for r in c.execute("SELECT id FROM jobs WHERE batch=? ORDER BY created", (batch,))]
+        return JSONResponse({"batch": batch, "jobs": ids, "errors": errors})
     return RedirectResponse(f"/?batch={batch}", status_code=303)
 
 
@@ -761,6 +771,29 @@ def queue_info():
     with db() as c:
         rows = c.execute("SELECT id FROM jobs WHERE status='approved' ORDER BY COALESCE(priority,0) DESC, created").fetchall()
     return {r["id"]: i + 1 for i, r in enumerate(rows)}
+
+
+@app.get("/api/job/{job_id}")
+def api_job(job_id: str):
+    """حالة فيديو واحد + روابط الملفات (للموظفين الآليين)."""
+    j = get(job_id)
+    d = jdir(job_id)
+    files = [n for n in ("final.mp4", "final.srt", "final_b.mp4", "final_c.mp4", "final_9x16.mp4", "final_1x1.mp4",
+                         "final_4x5.mp4") if (d / n).exists()]
+    if (d / "ads").exists() and any((d / "ads").glob("*.jpg")):
+        files.append("ads.zip")
+    return JSONResponse({"id": j["id"], "name": j["name"], "status": j["status"], "status_ar": STATUS_AR.get(j["status"]),
+                         "step": j["step"], "error": j["error"], "img_status": j["img_status"], "opts": j["opts"],
+                         "plan": j["plan"], "files": {n: f"/files/{job_id}/{n}" for n in files}})
+
+
+@app.post("/api/job/{job_id}/approve")
+def api_approve(job_id: str):
+    j = get(job_id)
+    if j["status"] not in ("review", "error", "done"):
+        raise HTTPException(400, f"الحالة {j['status']} ماكتسمحش")
+    update(job_id, status="approved", error="")
+    return JSONResponse({"ok": True})
 
 
 @app.get("/api/jobs")
