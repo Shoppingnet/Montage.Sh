@@ -1,0 +1,5 @@
+@font-face{font-family:Marhey;src:url('file:///home/claude/kit/fonts/x3d8ck7Laq-T7wl7mqfVrEe9sDvtBSx3O2c.ttf');font-weight:700}
+@font-face{font-family:Lux;src:url('file:///home/claude/kit/fonts/playfair.ttf');font-weight:700}
+body{margin:0;width:1080px;height:1920px;background:transparent;direction:rtl}
+.goldtxt{background:linear-gradient(180deg,#FFF3C4 0%,#E8C66A 35%,#B8862B 65%,#F3D88A 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.goldbd{border:3px solid transparent;background:linear-gradient(rgba(12,10,8,.82),rgba(12,10,8,.82)) padding-box,linear-gradient(135deg,#F7E3A1,#B8862B,#F3D88A,#8C6420) border-box}
