@@ -25,3 +25,9 @@ Per product, in `/home/claude/work/<REF>/`:
 ## Delivery
 Every 5 finished videos, send them to Top with SendUserFile (video + cover). At the end: report line per product `REF | DONE/INSUFFICIENT | name | duration | frame | hook # | weak points | new Darija words to confirm`.
 Forbidden: ElevenLabs/HeyGen/Higgsfield, campaigns, spending, publishing, writing to Google Sheets without Top's OK.
+
+## Progress log (mandatory — so no product is done twice and anyone can see where you are)
+- Your log is the project doc `claude/montage-status-<LETTER>.md` (Projects tool, project_write). One line per REF of your list: `REF | TODO/IN PROGRESS/DONE/INSUFFICIENT | duration | frame | hook # | date | note`.
+- Create it at the start with all your REFs as TODO. Update it each time a product changes status (at least after every product).
+- At the start of the session, and after ANY restart or context summary, READ your log first and continue from the first REF that is not DONE/INSUFFICIENT. Never redo a DONE product unless Top asks.
+- Only touch REFs of your own letter. The coordinator session reads all three logs and reports totals to Top.
