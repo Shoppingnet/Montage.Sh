@@ -19,7 +19,7 @@ Per product, in `/home/claude/work/<REF>/`:
 5. Voice: female Laomedeia only via `python3 /home/claude/mytools/tts2.py <REF> <take>` — max 2 takes, keep the best by Whisper (`/home/claude/kit/wt.py`). On 429 the tool sleeps; never loop-retry. Listen-check words with fatha (e.g. السَّفَرْ) — if vowels drop, change the line.
 6. Cut each shot on its sentence's word times; 30–45 s; slow-mo (≤1.9×) instead of repeating seconds; never upscale a low-res band crop (blurry). Build with `/home/claude/mytools/buildC.py` (or build4.py for caption blur, buildD.py for bf: fit mode). FRAME_STYLE = one of the 10 frames in /home/claude/kit/frames/, a different one per product. One encode at a time.
 7. Make `final_sheet.jpg` (1 fps) and LOOK at it plus 3 full-res frames: sharp, every sentence on its shot, no text/watermarks, no filler shots.
-8. Thumbnail: `python3 /home/claude/kit/cover.py <final.mp4> "<product name>" <FRAME_STYLE> <REF>_cover.jpg` and look at it.
+8. Thumbnail (style approved by Top 02/11 — see section «Thumbnail style»).
 9. Output names: `<REF>_<product name with _>.mp4` and `<REF>_cover.jpg`.
 
 ## Delivery
@@ -37,4 +37,11 @@ Forbidden: ElevenLabs/HeyGen/Higgsfield, campaigns, spending, publishing, writin
 - Sheet 1WPUIxlQKlJIzuT9NtazaI2XLwyirTY67TVWGZVmNffM, tab «جاهزين للمونتاج»: for each finished REF (column C), write column V = `https://claude.ai/artifact/UQRMBjyJVSN5FB6exr7PfD ← covers/<REF>.jpg` and column W = `جاهز بالكادر + thumbnail`. Only columns V and W, only your own REFs.
 
 ## Closing line (Top approved 02/11)
-Use one of the 10 approved feminine closings in `/home/claude/kit/ctas_F.txt` (copy the line exactly, with its tashkeel) instead of always the same ending; rotate them so consecutive products don't share the same closing. Thumbnail style is being redesigned with Top — until he approves the new one, keep making `cover.py` covers.
+Use one of the 10 approved feminine closings in `/home/claude/kit/ctas_F.txt` (copy the line exactly, with its tashkeel) instead of always the same ending; rotate them so consecutive products don't share the same closing. 
+
+## Thumbnail style (approved by Top 02/11/2026 — replaces cover.py)
+- ONE strong, attractive shot where the exact product is the hero (large, clear, working/result), no phone number badge, keep the product's thin frame.
+- Clean it with Nano Banana: `python3 /home/claude/mytools/nb.py <frame.png> <hero.png> "<prompt>"` — prompt: make this exact photo a sharp, bright, high-end vertical 9:16 ad photo; product the hero, large and centered; remove ALL text/captions/stickers/brand names/logos; keep the product EXACTLY as it is (shape, colour, parts); no beer/alcohol; realistic light. Then LOOK at it: if the product changed, or brands/alcohol/text appear, regenerate once or use the plain frame instead. Max 2 Nano Banana calls per product.
+- Text: one short Darija hook line (2–5 words) in the upper-centre eye zone, with ONE key word in [brackets] → shown in a coloured box. Line goes with the video's hook / ad copy (problem→result). Pure Darija, no tashkeel needed on the image.
+- Facebook policy: no before/after for body/health products, no questions or claims about the viewer's health or personal situation ("واش ضهرك كيضرك؟" ✗ → "كيعاونك تبقاي بضهر مقاد" ✓), no exaggerated promises, little text.
+- Render: `python3 /home/claude/kit/cover3.py <hero.png> <FRAME_STYLE> <REF>_cover.jpg 0 "<hook with [word]>"` — the colour of the word box follows FRAME_STYLE, so every product gets a different colour.
