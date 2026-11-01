@@ -35,3 +35,6 @@ Forbidden: ElevenLabs/HeyGen/Higgsfield, campaigns, spending, publishing, writin
 ## Thumbnails in the shared gallery + sheet column
 - Gallery artifact: https://claude.ai/artifact/UQRMBjyJVSN5FB6exr7PfD (index.html + covers/<REF>.jpg). After every 5 finished videos: Artifact read that URL, then publish to the same `url` adding `covers/<REF>.jpg` files (files map; keep the existing ones) and a matching `<figure class="card">` for each new REF in index.html (same markup as the existing cards).
 - Sheet 1WPUIxlQKlJIzuT9NtazaI2XLwyirTY67TVWGZVmNffM, tab «جاهزين للمونتاج»: for each finished REF (column C), write column V = `https://claude.ai/artifact/UQRMBjyJVSN5FB6exr7PfD ← covers/<REF>.jpg` and column W = `جاهز بالكادر + thumbnail`. Only columns V and W, only your own REFs.
+
+## Closing line (Top approved 02/11)
+Use one of the 10 approved feminine closings in `/home/claude/kit/ctas_F.txt` (copy the line exactly, with its tashkeel) instead of always the same ending; rotate them so consecutive products don't share the same closing. Thumbnail style is being redesigned with Top — until he approves the new one, keep making `cover.py` covers.
