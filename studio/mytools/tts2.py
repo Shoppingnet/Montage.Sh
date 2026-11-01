@@ -19,14 +19,12 @@ def call(k):
             return None,max(d,30)
         print('HTTP',e.code,file=sys.stderr); return None,60
 while True:
-    r,d1=call('.gk')
-    if r is None:
-        r,d2=call('.gk2')
-    if r is None:
-        r,d3=call('.gk3')
-    else: d3=d2
+    ds=[]
+    for k in ('.gk','.gk2','.gk3'):
+        r,d=call(k); ds.append(d)
+        if r is not None: break
     if r is not None: break
-    w=min(d1,d2,d3)+5; print(f'429 all keys, sleeping {w:.0f}s',flush=True); time.sleep(w)
+    w=min(ds)+5; print(f'429 all keys, sleeping {w:.0f}s',flush=True); time.sleep(w)
 p=r["candidates"][0]["content"]["parts"][0]["inlineData"]
 open(f't{tk}.pcm','wb').write(base64.b64decode(p["data"]))
 subprocess.run(['cp',f't{tk}.pcm',f't{tk}.wav'])
