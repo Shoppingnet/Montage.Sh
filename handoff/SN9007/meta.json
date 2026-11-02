@@ -1,0 +1,18 @@
+{
+ "ref": "SN9007",
+ "name": "حافظة مناديل حائطية عصرية",
+ "frame": 2,
+ "hook": 19,
+ "closing": 7,
+ "cover_hook": "حمام [مرتب] ومناديل نقية",
+ "cover_time": "v10 @ 9.0 (amber unit, hand pulling a tissue from the bottom slot, no face)",
+ "clips_used": "v2 (720x1282, 16.7s) and v10 (720x1282, 16.8s) clean; v3 is the same xiaohongshu post as v2 (duplicate); v4 (23s) has burned Chinese subtitles at the bottom, not used; v6 failed to download; facebook link (v1) and douyin links not downloadable",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; maxEnd is the last clean source second, 6th item ignored by mkplan",
+  "faces avoided: v2 t1 (woman), v10 t5, t10, t13 (creators). Do not extend windows into those seconds",
+  "tiny red sticker (福) bottom-right on v2 t4-5/t8 and v10 t0-4: small; crop band:0.00-0.88 if it bothers",
+  "estimated voice ~30 s; if shorter than 30 s add a sentence about the shelves holding creams (v10 6s) or repeat nothing",
+  "no 'no-drill install' claim: only in the burned subtitles of v4, not shown in clean footage",
+  "words to confirm: كَتْجْبْدِي, الْمْنْدِيلْ (singular), كَيْبَانْ, الْعْطُورْ"
+ ]
+}
