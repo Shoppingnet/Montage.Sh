@@ -1,0 +1,18 @@
+{
+ "ref": "SN9138",
+ "name": "ممسحة لاسلكية متعددة الإستعمالات",
+ "frame": 5,
+ "hook": 6,
+ "closing": 1,
+ "cover_hook": "الزاج [نقي] بلا بقع",
+ "cover_time": "v8 @ 3.5 (device clearing a spill on a white counter, 1080p, clean)",
+ "clips_used": "v8 (1080x1920, 11s, clean), v9 (720x1280, 11s, clean, tiny logo on the kitchen cabinet at t5-6 only), v4 (1080x1920, 48s: t0-30 clean outdoor window cleaning, hands only; t32-48 a man's face and a red arrow: never use). Not used: v1 (English subtitles), v2 (caption at t0 and a woman from behind), v3 (burned captions), v5 (576p box shots)",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "v8 t3 and t7 show a dark red liquid spill (wine/juice): ok, not blood-like in the full frame; skip if Top finds it strong",
+  "hook 6 is about household mess, not about the viewer's health, so it is allowed",
+  "'بْلَا فِيلْ' and 'كَتْخْدَمْ بْالْبَاطْرِي' describe a cordless device; the clips do not show the charging",
+  "estimated voice ~31 s",
+  "words to confirm: مَسَّاحَة, بْلَا فِيلْ, الْخَزَّان, بْلَا بْقَعْ, كَتْشَدّْ الْمَا"
+ ]
+}
