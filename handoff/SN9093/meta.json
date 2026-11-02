@@ -1,0 +1,5 @@
+{"frame": 3, "hook": 6, "closing": 3, "cover_hook": "حتى [البلاصة] الضيقة كتنفع", "cover_time": "v10 9.5",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1,v3,v5 576p (v3/v5 burned captions); v6-v9 not downloadable",
+ "weak_points": "v10 0-1 and 14-15 slowed to fill the closing",
+ "new_words": "التِّيرْوَارْ (drawer, per dictionary), الْبُوكَالَاتْ (jars), الشَّامْپْوَانْ — to confirm"}
