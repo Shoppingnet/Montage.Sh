@@ -1,0 +1,5 @@
+{"frame": 8, "hook": 18, "closing": 9, "cover_hook": "[راحة] فكل خرجة", "cover_time": "v1 6.0 (band 0.25-1.00)",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v2 landscape with text; v3,v4 not downloadable; v1 20-22 has a face-blur emoji; v5 9-10 man's face close-up",
+ "weak_points": "v1 is 1080x1440 (3:4) -> slight upscale; v1 has pre-blurred logo patches at the top in 7-9, 12-13, 17-19 (band crops set); closing shots are short, may need |sl tuning",
+ "new_words": "الْحْدِيدَاتْ (frame tubes), مْطْوِي — to confirm"}
