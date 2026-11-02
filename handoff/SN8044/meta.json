@@ -1,0 +1,5 @@
+{"frame": 10, "hook": 3, "closing": 1, "cover_hook": "لعبة [إكس و أو] بالضو", "cover_time": "v8 6.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1 YouTube; v3 360p; v6 phone-number watermark + faces; v7 text titles; v9 a toy figure (licensed-looking character) in background; v10 AI presenter + text; v2 0-1 'AMAZON MUST HAVE'",
+ "weak_points": "device colour differs across clips (pink v2, orange v4, yellow v5/v8) — confirm the colour Top sells; v5 Arabic caption cropped with band:0.00-0.78",
+ "new_words": "الْإِكْسْ وْالْأُو (X and O), الْإِلِكْتْرُونِيكْ, الْمْرْبّْعْ — to confirm"}
