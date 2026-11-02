@@ -1,0 +1,19 @@
+{
+ "ref": "SN8109",
+ "name": "مصباح قراءة قابل لإعادة الشحن",
+ "frame": 7,
+ "hook": 12,
+ "closing": 5,
+ "cover_hook": "[اقرا] فالليل بلا ضو",
+ "cover_time": "v4 @ 4.0 (open book lit by the clip light, hand only, 1080p)",
+ "clips_used": "v3 (1080x1920, 40s, clean: hands on a grey blanket, warm light) and v4 (1080x1920, 20s, clean: book lit by the light t1-6, legs and the device t10-19; no face). v5 is landscape 1920x1080 (54 s, not reviewed)",
+ "notes": [
+  "hook 12 'شوفي الفرق! قبل ودابا!' is justified by v4 t0 (dim book) then t1 (lit book): the first shot must start at t0.0 and run through t1.5",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "v3 t13-21 shows the warm light on a fingertip very close up: fine, no skin issue",
+  "USB end of the light is visible at v3 t33-39 and v4 t12-19: that is the only proof of 'rechargeable'",
+  "gender: لَامْبَة is feminine in the script (كَتْحَطِّيهَا, صْغِيرَة)",
+  "estimated voice ~30 s",
+  "words to confirm: لَامْبَة, كَتْحَرّْكِي الرَّاسْ, ضَوْ الْبِيتْ, كَتْطْوَى"
+ ]
+}
