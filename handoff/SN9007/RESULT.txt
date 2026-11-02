@@ -1,0 +1,1 @@
+SN9007 | BLOCKED by coordinator | NOT BUILT: voice only ~25 s; script extended with 2 lines (shelf removed / tissue near sink) but all Gemini keys now HTTP 402 credits depleted — waiting for TTS credit
