@@ -1,0 +1,19 @@
+{
+ "ref": "SN6006",
+ "name": "درع توزيع الهواء للمكيف",
+ "frame": 9,
+ "hook": 16,
+ "closing": 6,
+ "cover_hook": "[وجّه] الهوا فين بغيتي",
+ "cover_time": "v6 @ 4.0 with band:0.20-1.00 (AC with the deflector, arm only, 1080p)",
+ "clips_used": "v6 (1080x1920, 15s: Arabic title bar at the top y<0.12 and a red 'اطلب الحين' label at y~0.18 on t13-14 -> band:0.20-1.00, 1080p so only 1.25x), v1 (720x1280, only t2-7 usable: arm-only close-ups; t8-14 are OTHER products (hinge LED light, battery): never use), v2 (720x1280, 10.4s clean but the woman's face is visible at t0-1: use only t9), v5 (720x1280, 31.6s: constant 'TECHNO MAART' logo at the top, hence band:0.14-1.00 = 1.75x upscale, and a woman's face on t0-9; t27-31 is a brand end card: only t12-22 used, arm only). Not used: v4 (Arabic captions + price 3.500KD), v3 (burned 'Product Link In DESCRIPTION' + SMART CHOICE watermark)",
+ "notes": [
+  "weak point: v5 shots (line 4, 7b, 8) are an upscaled 720p band crop: if they look soft, replace them with v6 slow-mo or drop line 4 and keep >=30 s with a longer closing",
+  "total clean footage is ~38 s of which ~14 s is the v5 upscale: marginal on the 34 s rule",
+  "'الْكْلِيمَاتِيزُورْ' from the dictionary; no health claim (air not blowing 'on you directly' only)",
+  "v1 t5-7 and v2 t9 show a lighter flame used to show the airflow: usable, not alarming",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "estimated voice ~31 s",
+  "words to confirm: حَاجِزْ, كَيْوَجّْهْ الْهْوَا, دِيرِيكْتْ, الْكْلِيمَاتِيزُورْ"
+ ]
+}
