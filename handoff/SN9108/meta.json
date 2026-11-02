@@ -1,0 +1,5 @@
+{"frame": 4, "hook": 8, "closing": 5, "cover_hook": "الخضرة واجدة [فثواني]", "cover_time": "v4 52.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1 taobao access error; v3 burned Portuguese captions; v4 0-12 box/brand and 40-50 coupon captions not used",
+ "weak_points": "machine shows the LWG brand logo on its body; v2/v5 are 576p (used in fit mode, short shots); no problem shot in footage",
+ "new_words": "الرّْيُوسْ (blade cones), مْحْكُوكْ (grated), الشّْلَاضَةْ — to confirm. Used «الْآلَةْ» per Top correction (not الماكينة)"}
