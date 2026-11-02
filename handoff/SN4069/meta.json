@@ -1,0 +1,18 @@
+{
+ "ref": "SN4069",
+ "name": "شواية تخييم محمولة قابلة للطي",
+ "frame": 8,
+ "hook": 13,
+ "closing": 9,
+ "cover_hook": "شواية [كتطوى] بسهولة",
+ "cover_time": "v1 @ 11.0 with band:0.00-0.74 (coals and skewers, 1080p) or v3 @ 11.0 (grilling skewers, 576p clean)",
+ "clips_used": "v1 (1080x1920, 34s) with band:0.00-0.74 to cut the English subtitles at y>0.76 and a small corner watermark: only t0-17.5 are used (hands, gloves, torsos with the heads cropped); t18-34 show a woman whose face appears: never use. v3, v4, v5 (576x1024, 13-15s each) are clean (grass / beach, hands and legs only) but low resolution: about 47% of the voiced time is on them (full-frame 1.875x upscale). Not used: v2 (720p, presenter's face + title bar)",
+ "notes": [
+  "weak point: the 576p shots (lines 3,5,6, 7b, 8) will look softer than the v1 band shots; if Top finds them blurry, fall back on v1 slow-mo repeats at other time offsets or mark INSUFFICIENT",
+  "hook 13 (feminine هادي) matches because 'شَوَّايَة' is feminine",
+  "'الْبْرُوشِيطْ' (French loan, skewers) is the usual Moroccan word: to confirm",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "estimated voice ~30 s",
+  "words to confirm: شَوَّايَة, الْإِينُوكْسْ, الْبْرُوشِيطْ, كَتْهَزّْهَا, فْالْجْرْدَة وْفْالْبْحَرْ"
+ ]
+}
