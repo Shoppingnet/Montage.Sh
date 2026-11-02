@@ -1,0 +1,18 @@
+{
+ "ref": "SN9140",
+ "name": "كشاف LED شمسي قابل للشحن",
+ "frame": 3,
+ "hook": 4,
+ "closing": 10,
+ "cover_hook": "كشاف [كيتشارجا] بالشمس",
+ "cover_time": "v7 @ 0.5 (lit light on a table, 1080p clean) or v3 @ 10.0 (studio white background, front lit)",
+ "clips_used": "v7 (1080x1918, 39s, clean, hands only, tiny CapCut logo at the top right on t30-34) and v3 (720x1280, 22s, studio white background, clean). Not used: v4 (woman presenter face), v6 (Arabic badge '15 ألف توصيل مجاني' on every frame), v8 (576p), v1 (1920x1080 landscape, 95 s, not reviewed); douyin/instagram/youtube links not downloadable",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "v7 t10-16 is a night scene where the panel is held but the light is off: do not use",
+  "closing line #10 split in two lines (A 2 s, B 5 s with the end card over its last 3 s)",
+  "'كَيْتْشَارْجَا بْالشّْمَسْ' = Top's wording (list section 4); the sun-charging is only shown at v7 t18-19 (panel on a chair in daylight)",
+  "estimated voice ~31 s",
+  "words to confirm: كَشَّافْ, كَيْتْشَارْجَا بْالشّْمَسْ, تْشَارْجِيهْ بْالْكَابْلْ, لْوْنْ الضَّوْ, فْالْخْرْجَة"
+ ]
+}
