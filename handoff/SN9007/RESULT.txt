@@ -1,1 +1,2 @@
 SN9007 | BLOCKED by coordinator | NOT BUILT: voice only ~25 s; script extended with 2 lines (shelf removed / tissue near sink) but all Gemini keys now HTTP 402 credits depleted — waiting for TTS credit
+SN9007 | DONE by coordinator | SN9007_حافظة_مناديل_حائطية_عصرية.mp4 33.9 s, frame 2, hook 19, closing 7; take t1 Whisper 0.918; cover own frame v10 11.5 s «حمامك [مرتب] ونقي» (no Nano Banana); small 福 sticker ~19 s/~32 s
