@@ -1,0 +1,5 @@
+{"frame": 5, "hook": 17, "closing": 10, "cover_hook": "شدي [كلشي] بلا تعب", "cover_time": "v4 21.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v5 text; v7/v8/v10 burned captions; v6 0-2 Arabic title; v1/v2 not downloadable",
+ "weak_points": "two jaw colours (blue in v3, orange in v4/v6/v9) — confirm the model Top sells; v3 9-10 shows a small brand box",
+ "new_words": "الْمَاسْكَةْ (per Top), الْكَاوْتْشُو (rubber), تْحْنَّايْ, سْلُّومْ — to confirm"}
