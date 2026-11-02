@@ -1,0 +1,5 @@
+{"frame": 4, "hook": 10, "closing": 7, "cover_hook": "طوموبيل [نقية] مع الكلب", "cover_time": "v2 16.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1 text boxes mid-frame (only 46.8-54 used with band 0.36-1.00); v3 captions; v4 'Back Seat Extender' title + other model; v5 576p captions; v2 0-3 POV caption",
+ "weak_points": "almost all from one clip (v2, 40 s, one car); 'waterproof' line relies on the seller claim (v1 caption says 100% waterproof) — drop it if Top prefers",
+ "new_words": "الْغْطَا دْيَالْ الْكْرَاسِي دْيَالْ اللُّورْ, السّْمَطْ (per Top), مْسْتَوْيَةْ — to confirm"}
