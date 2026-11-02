@@ -1,0 +1,5 @@
+{"frame": 6, "hook": 9, "closing": 5, "cover_hook": "البيض [مرتب] ديما", "cover_time": "v2 7.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v5 duplicate of v2; v6 overlaps v3; v4 not downloadable",
+ "weak_points": "v1 looks like a slightly different (single-row white) dispenser — confirm the model; no visible problem shot",
+ "new_words": "الطّْبَقَاتْ (tiers), كَيْنْزَلْ وْحْدُو (rolls down by itself) — to confirm"}
