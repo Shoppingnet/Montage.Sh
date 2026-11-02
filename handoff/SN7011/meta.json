@@ -1,0 +1,5 @@
+{"frame": 2, "hook": 13, "closing": 4, "cover_hook": "كوزينة [مرتبة] ديما", "cover_time": "v3 1.5 (band 0.16-1.00)",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v2 burned captions + CapCut end card; v4 576p with logo and 'Offers CODE' card; v1 576p (only 1 s wheel shot used, fit mode)",
+ "weak_points": "v3 has 'Kitchen storage Unit' text at the top -> band:0.16-1.00; v3 is long but repetitive (same cart, one room); the wheel shot is 576p",
+ "new_words": "السّْلَّاتْ (per project rule), الْبَالْكُونْ, الْحْلْوَةْ — to confirm"}
