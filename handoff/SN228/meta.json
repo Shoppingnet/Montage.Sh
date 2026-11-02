@@ -1,0 +1,5 @@
+{"frame": 6, "hook": 19, "closing": 6, "cover_hook": "لعبة [الفاميلة] كاملة", "cover_time": "v3 9.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v4 letterboxed + 'click yellow basket' text; v5/v10 576p (v10 Chinese subtitles); v6 text banners; v8 burned captions; v3 0-2 and 13-15 captions",
+ "weak_points": "v1/v2/v7 look like studio/AI ad footage (check); v2 has small subtitles at the bottom -> band:0.00-0.72; no problem shot",
+ "new_words": "الْجْرَانَةْ (frog), الْبْخْشَةْ (bug), الْفَامِيلَةْ, الْعْوَاشِرْ — to confirm"}
