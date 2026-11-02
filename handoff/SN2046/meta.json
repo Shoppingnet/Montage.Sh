@@ -1,0 +1,18 @@
+{
+ "ref": "SN2046",
+ "name": "أداة النجارة السحرية",
+ "frame": 10,
+ "hook": 7,
+ "closing": 8,
+ "cover_hook": "[حوّل] الميني مولور لآلة نجارة",
+ "cover_time": "v1 @ 3.0 with band:0.00-0.72 (adapter being fitted on the grinder, 1080p)",
+ "clips_used": "v1 (1080x1920, 18s): small English subtitles at y~0.76 -> band:0.00-0.72 (1.39x). v2 (1080x1920, 28s): yellow subtitles at y~0.88 on most seconds -> band:0.00-0.84. Both are hands-only, no faces. Not used: v3 (720p, Portuguese colour captions), v4 (720p, Indonesian captions), v5 (576p, orange warning icon bottom-right)",
+ "notes": [
+  "product = oscillating-blade adapter for an angle grinder (the 'magic carpentry tool'); script uses مُلْحَقْ like SN4029",
+  "line 6 'وْالْقْطْعَة كَتْخْدَمْ بْسُرْعَة' is a weak sentence: Top may prefer 'وْكَتْقْطَّعْ بْسُرْعَة'",
+  "closing #8 split into 3 lines (A 4 s, B 3.8 s, C 1.8 s)",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "estimated voice ~31 s",
+  "words to confirm: مُلْحَقْ, الْمِيني مُولُورْ, الْخْشَبْ, كَتْخْدَمْ بْلَا مَا تْشْرِي آلَة جْدِيدَة"
+ ]
+}
