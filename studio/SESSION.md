@@ -45,3 +45,10 @@ Use one of the 10 approved feminine closings in `/home/claude/kit/ctas_F.txt` (c
 - Text: one short Darija hook line (2–5 words) in the upper-centre eye zone, with ONE key word in [brackets] → shown in a coloured box. Line goes with the video's hook / ad copy (problem→result). Pure Darija, no tashkeel needed on the image.
 - Facebook policy: no before/after for body/health products, no questions or claims about the viewer's health or personal situation ("واش ضهرك كيضرك؟" ✗ → "كيعاونك تبقاي بضهر مقاد" ✓), no exaggerated promises, little text.
 - Render: `python3 /home/claude/kit/cover3.py <hero.png> <FRAME_STYLE> <REF>_cover.jpg 0 "<hook with [word]>"` — the colour of the word box follows FRAME_STYLE, so every product gets a different colour.
+
+## If your session cannot reach Gemini (403 on generativelanguage.googleapis.com) — B and C, 02/11
+Do NOT stop. Do everything except the voice and the final build, and hand over through this repo:
+1. Per product, after footage + shot list + script are ready (steps 1–4), commit to branch `studio-kit` a folder `handoff/<REF>/` containing: `urls.json` (the clip URLs you used, in order, so the coordinator can re-download them with dl.py), `script.txt` (final, full tashkeel, closing from ctas_F.txt), `shots.json` (your shot plan: per sentence → clip index, start, end, filters, in the buildC format), `meta.json` ({"frame": N, "hook": N, "closing": N, "cover_hook": "<thumbnail line with [word]>", "cover_time": "<clip index and second of the hero shot>"}), and your `final_sheet`-style contact sheet of the sources if you made one. `git pull --rebase` before every push; commit message `handoff <REF>`.
+2. Mark the REF `HANDOFF` in your montage-status log with the commit id.
+3. Keep going with the next product. The coordinator session voices, builds, verifies and marks DONE; its notes come back in the same log.
+Skip Nano Banana thumbnails if the host is blocked for you — just put the hero shot in meta.json; the coordinator renders the cover.
