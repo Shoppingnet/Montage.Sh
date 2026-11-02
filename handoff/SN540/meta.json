@@ -1,0 +1,5 @@
+{"frame": 5, "hook": 15, "closing": 7, "cover_hook": "الخضرة واجدة بلا [تعب]", "cover_time": "v2 11.5",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v4/v7/v8 creator faces + captions; v5 captions + sticker; v6 576p with titles; v9 big text block; v1 not downloadable; v3 13-15 and 17,19,21 have stickers",
+ "weak_points": "v2 25-30 has a red arrow sticker bottom-left -> band:0.00-0.75 crops it out (check); no visible problem shot",
+ "new_words": "الْحَكَّاكَةْ (grater), الْكْرُمْبْ (cabbage), مْحْكُوكْ — to confirm"}
