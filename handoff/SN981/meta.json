@@ -1,0 +1,18 @@
+{
+ "ref": "SN981",
+ "name": "حامل الكمبيوتر الدوار",
+ "frame": 5,
+ "hook": 5,
+ "closing": 4,
+ "cover_hook": "[360°] حامل كيدور بسهولة",
+ "cover_time": "v4 @ 14.0 (stand side view, clean, no text) or v3 @ 8.0 (laptop on the stand, needs band crop)",
+ "clips_used": "v3 (1080x1920, 21.9s, red burned label '360 Rotate Laptop Stand' at y~0.21), v2 (1080x1920, 13.7s, small burned caption at y~0.2), v4 (720x1280, 15s, clean). Source is 1080 wide so band:0.27-1.00 (1080x1400 -> 1080x1920, 1.37x) is acceptable. Not used: v1 (creator face all the time), v5 (hands only but English subtitles at the bottom, 720p), v6-v10 lower resolution or not reviewed",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; flag 'band:a-b|slow' is understood by buildC (band crop + 1.5x slow)",
+  "the caption on v2 and v3 sits above y=0.27, so the band crop removes it; do not use a band starting lower than 0.27",
+  "word for laptop: الْكُومْبْيُوتَرْ (as in the product name); الْبُورْطَابْلْ is the street word if Top prefers it",
+  "vent slots: 'فْتْحَاتْ باش يْدُوزْ الْهْوَا' is an explanation of visible slots, remove if Top wants zero function claims",
+  "estimated voice ~30 s; if shorter add a sentence over v3 14-17 s (stand folding/adjusting)",
+  "words to confirm: حَامِلْ, الْبِيرُو, فْتْحَاتْ, كَيْدُورْ مْنْ كُلّْ نَاحْيَة"
+ ]
+}
