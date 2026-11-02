@@ -1,0 +1,5 @@
+{"frame": 1, "hook": 12, "closing": 3, "cover_hook": "طوموبيل [باردة] فالصيف", "cover_time": "v9 9.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1/v2 burned captions mid-frame; v6 = v9 with Arabic subtitles; v7 Arabic banners; v8 marked 'AI preview' with AI-fantasy shots; v3 only the parts without the talking man; v4/v5 not downloadable",
+ "weak_points": "hook 12 before/after is proven only by the thermometer shot (v10 8-10, 576p, fit mode); v10 is 576p; v9 has a tiny line at the very top -> band:0.03-1.00",
+ "new_words": "الزَّاجْ (windshield, per Top), الطّْبْلُو (dashboard), فْضِّي — to confirm"}
