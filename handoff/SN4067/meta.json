@@ -1,0 +1,18 @@
+{
+ "ref": "SN4067",
+ "name": "لعبة عجلة القيادة للأطفال",
+ "frame": 4,
+ "hook": 14,
+ "closing": 4,
+ "cover_hook": "[لعبة] فولان للدراري",
+ "cover_time": "v8 @ 4.0 (yellow/black toy wheel, finger on the buttons, clean) or v10 @ 1.0 (pink/blue wheel in a shop)",
+ "clips_used": "v8 (720x1280, 21s, clean: toy on a dark table, finger pressing the buttons, static), v10 (720x1280, 16s, clean: pink/blue wheel in a shop, hands only), v9 (720x1280, 13s: wheel on a car dash; 'KIDS STEERING WHEEL!' title at t0 and a tiny caption at the top y~0.1 on later seconds -> band:0.16-1.00 = 1.77x upscale, weak point). Not used: v6 (1080p but 'SHOPIME' watermark, Arabic subtitles and children's faces), v7 (720p, bottom 15% is a blurred extension, would need 1.9x crop; shows other colour variants blue/yellow and pink/white on a car dash: usable only if more colours are wanted)",
+ "notes": [
+  "weak point: footage is repetitive and static (v8/v10 are the same finger-on-buttons demo), and v9 is an upscaled band: if v9 looks soft, drop lines 4 and 5 and add a sentence over v7 t2.6-9.0",
+  "no claim about sounds: the clips are silent as far as the sheets show",
+  "no children's faces used",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "estimated voice ~31 s",
+  "words to confirm: فُولَانْ, الزْرَارْ, وْوْلِيدْكْ كَيْحَسّْ بْلِّي كَيْسُوقْ, مْزْيَانَة لْلْوْلِيدْ"
+ ]
+}
