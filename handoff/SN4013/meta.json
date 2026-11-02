@@ -1,0 +1,5 @@
+{"frame": 1, "hook": 6, "closing": 3, "cover_hook": "وصلي [للفوق] بالساهل", "cover_time": "v3 16.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v5 landscape; v6/v7/v10 burned Arabic captions (+ logo); v9 small logo top-left (band 0.07-1.00 when used); v1/v2 not downloadable",
+ "weak_points": "problem line is shown over a climbing shot (no shot of the problem itself)",
+ "new_words": "الدّْرُوجْ (steps), كَتْزْلَقْ (slip) — to confirm"}
