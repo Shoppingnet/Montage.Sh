@@ -1,0 +1,5 @@
+{"frame": 9, "hook": 7, "closing": 1, "cover_hook": "[المناضر] ديما قريبين", "cover_time": "v9 5.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v2 landscape 1920x1080 (would need heavy crop); v3 480p; v9 0-3 Mercedes logo on the wheel; v8 download failed; v4-v7 not downloadable",
+ "weak_points": "v1 has faint white subtitles at ~y0.75 -> band:0.00-0.72; v1 is one car and repetitive",
+ "new_words": "الْمْنَاضْرْ (glasses), الْپَارَاصُولَايْ (sun visor), الْكْلِيپْسْ — to confirm"}
