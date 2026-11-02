@@ -1,0 +1,1 @@
+SN9108 | DONE by coordinator | SN9108 video 32.2 s, frame 4; fit→bf (buildD) because 576p clips broke fit crop; cucumber sentence moved to cucumber shots v2 18.2 + v5 21.6; LWG logo still visible on machine
