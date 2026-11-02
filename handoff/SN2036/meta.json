@@ -1,0 +1,5 @@
+{"frame": 9, "hook": 20, "closing": 10, "cover_hook": "الماكلة بلا [وسخ]", "cover_time": "v5 3.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v2,v4 douyin; v3 Chinese subtitles mid-frame; v1 6-7 and 11-12 text; v6 8-11 stickers",
+ "weak_points": "v6 is 720x960 with Chinese subtitles at the bottom -> band:0.00-0.82 (slight upscale); v1/v6 bibs have cartoon prints (generic, not branded characters — check)",
+ "new_words": "الْبَاڤْوَارْ (bib), السّْكْرَاتْشْ (velcro), الدّْلَّاحْ, كْمَامْ — to confirm"}
