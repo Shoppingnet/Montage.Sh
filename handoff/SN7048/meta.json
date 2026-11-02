@@ -1,0 +1,19 @@
+{
+ "ref": "SN7048",
+ "name": "مجموعة رفوف تخزين متعددة الوظائف (5 قطع)",
+ "frame": 9,
+ "hook": 20,
+ "closing": 7,
+ "cover_hook": "[5] رفوف بلا ما تطقب",
+ "cover_time": "v1 @ 4.5 with band:0.18-1.00 (corner shelves with coloured bottles, 1080p)",
+ "clips_used": "v5 (1080x1920, 49s) only t0-26 (handheld and often motion-blurred, but no text); from t27 the shelves hold real brand bottles (Old Spice, Axe, Biolage): never use those seconds. v1 (1080x1920, 14s): 'Nashtare Shop' logo top-left on t0-7 -> band:0.18-1.00; t9-14 are a blue end card with a phone number and 'Powered by Arabia Agency': never use. Not used: v2/v3 (English captions and before/after graphics), v4 (576p, man's face at t0-1)",
+ "notes": [
+  "weak points: only ~7 s of good v1 footage; v5 is shaky/blurred in many seconds (t8-9, t16-17, t19-23): check final_sheet.jpg and replace blurry shots by v5 t10-15 or t24-25",
+  "total clean source ~33 s (borderline on the 34 s rule): all shots slow-mo 1.5x",
+  "'(5 قطع)' is in the product name so 'خَمْسَة دْ الْقِطَعْ' is allowed; no price said",
+  "'بْلَا مَا تْطَقّْبِي' (no drilling) is backed by the transparent adhesive pads seen at v5 t10-15",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "estimated voice ~30 s",
+  "words to confirm: رُفُوفْ, بْلَا مَا تْطَقّْبِي, لِيفَة الْحَمَّامْ, الشَّامْبْوَانْ, بْلَاصَة لْلصّْبُونَة"
+ ]
+}
