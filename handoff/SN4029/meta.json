@@ -1,0 +1,18 @@
+{
+ "ref": "SN4029",
+ "name": "ملحق سهل التركيب",
+ "frame": 3,
+ "hook": 10,
+ "closing": 2,
+ "cover_hook": "وصل لـ[البلايص] الضيقة",
+ "cover_time": "v7 @ 1.5 (attachment in a shelf corner) or v8 @ 19.0 (close-up of the angled head); plain frame, no text",
+ "clips_used": "v7 (720x1280, 12.9s) and v8 (720x1280, 27.3s), both clean without text/faces. Not used: v5 (720p but burned English captions + brand end card), v6 (360x640, too low-res), v4 (640x1136), v9 (1080x1920, 41s, not reviewed: v7+v8 already give 40s), v10 (576x1024). youtube links (v1-v3) and instagram (v6) not downloadable/skipped",
+ "notes": [
+  "product = right-angle (105 degree) drill attachment. The Arabic name is vague (ملحق سهل التركيب); script says مُلْحَقْ for the drill",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; maxEnd is the last clean source second",
+  "v8 t17-18 shows a plain screwdriver and nails (not the product): never use. v8 t5/t23-26 are other uses (plumbing, car wheel, boards): use only if footage short",
+  "all drills/hands only, no faces",
+  "estimated voice ~31 s",
+  "words to confirm: الطَّقَّابَة (drill), التِّيرْوَارْ (drawer), كَيْتْشَدّْوْ, الْبْلَايْصْ اللِّي ضَيْقِينْ"
+ ]
+}
