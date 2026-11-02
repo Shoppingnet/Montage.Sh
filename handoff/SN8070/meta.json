@@ -1,0 +1,18 @@
+{
+ "ref": "SN8070",
+ "name": "مجموعة تقليم أظافر فاخرة (قطعتين)",
+ "frame": 2,
+ "hook": 3,
+ "closing": 6,
+ "cover_hook": "[طقم] كامل فعلبة وحدة",
+ "cover_time": "v2 @ 1.5 (brown case open with all tools, 1080p, hand only)",
+ "clips_used": "v2 (1080x1920, 30s, brown set, clean, hands only) and v8 (720x1280, 22s, cream set, clean). The two colours explain '(قطعتين)': line 7 and v8 t0-1 show both cases. Other clean candidates not needed: v9 (720p, 33s), v6 (720p, 15s), v5 (720p, 21s; painted nails). Not used: v7 (tiny Chinese subtitles at the bottom), v1 and v3 (small watermark text), xiaohongshu/tiktok clips beyond these were not reviewed in detail, douyin blocked",
+ "notes": [
+  "hands only, no faces; no burned captions in v2/v8",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "frame 2 reused (only 10 frames for 40 products)",
+  "'ما كيطيروش' is shown only by the nail bits piling in the palm in v2 t6-9: remove line 2 if Top objects",
+  "words to confirm: قَطَّاعَة الضّْفَارْ (from Top's list: مقص الظفر ← قطاعَة الضفار), الْمِنْقَاشْ, الْمِبْرَدْ دْيَالْ الزَّاجْ, عْلْبَة بْحْزَامْ",
+  "estimated voice ~31 s"
+ ]
+}
