@@ -1,0 +1,5 @@
+{"frame": 2, "hook": 5, "closing": 6, "cover_hook": "[راحة] فكل گلسة", "cover_time": "v4 9.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1 0-52 talking creator; v4 0-2 'How to relieve pain' text; v5 576p captions; v2 faces; v3 faces (only hands-only part used)",
+ "weak_points": "body/comfort product: script avoids pain/health claims on purpose — keep the cover without before/after or health promises; v2/v3 may be AI-made ad footage; v1 truck-cab shots are repetitive",
+ "new_words": "مْقَوّْسْ (curved), إِسْفَنْجْ, الْگْلْسَةْ — to confirm"}
