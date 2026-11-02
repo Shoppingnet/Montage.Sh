@@ -1,0 +1,5 @@
+{"frame": 2, "hook": 10, "closing": 2, "cover_hook": "سقي الجردة [ساهل]", "cover_time": "v1 11.5",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v2,v3 douyin (not downloadable), v4 taobao returned access error; only v1 (36 s, 720p, clean) used",
+ "weak_points": "single clip, same garden background all video; no problem shot (none in footage)",
+ "new_words": "الرَّشَّاشْ (garden spray wand), التِّيُو (hose) — to confirm"}
