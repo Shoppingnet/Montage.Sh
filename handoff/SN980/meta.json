@@ -1,0 +1,18 @@
+{
+ "ref": "SN980",
+ "name": "صندوق تخزين متعدد الوظائف (2 قطع)",
+ "frame": 8,
+ "hook": 18,
+ "closing": 5,
+ "cover_hook": "[رتبي] الدولاب ديالك بسهولة",
+ "cover_time": "v4 @ 12.5 (wall full of colourful boxes, clean)",
+ "clips_used": "v4 (1080x1920, 31.5s) and v9 (720x1280, 20.2s): both clean (no text, no faces, hands only). Not used: v10 (1080p 9s, not reviewed), v5/v7/v8/v6 (low-res / short), youtube + instagram links not downloadable",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; maxEnd is the last clean source second",
+  "v9 t10-11 shows a bra-like beige item in the box: windows avoid those seconds",
+  "closing 5 is split in two lines; the 2nd one (~3.8 s) is mostly covered by the end card",
+  "'(2 قطع)' comes from the product name, so 'جُوجْ دْ الْقِطَعْ' is allowed",
+  "estimated voice ~32 s",
+  "words to confirm: صَنَادَقْ, كَيْتْحَلّْوْ بْالْجَرّْ بْحَالْ تِيرْوَارْ, التّْقَاشَرْ, الْمْسَامْرْ, كَتْلَقّْطِيهُمْ"
+ ]
+}
