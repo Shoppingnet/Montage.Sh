@@ -1,0 +1,5 @@
+{"frame": 10, "hook": 4, "closing": 2, "cover_hook": "بلا [ثقوب] فالحيط", "cover_time": "v3 9.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1 looks like a different model (black bar) + red X sticker; v2 presenter, captions, phone number and store logo (only band 0.00-0.70 of 3.8-19 used)",
+ "weak_points": "mostly one clip (v3); v2 bands may still show a small caption at the top in 5-8 s (not used)",
+ "new_words": "الْڤَانْطُوزْ (suction cup), رُولُو دْ الْمْنَادْلْ, الرّْخَامْ — to confirm"}
