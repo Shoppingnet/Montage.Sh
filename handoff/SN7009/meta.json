@@ -1,0 +1,18 @@
+{
+ "ref": "SN7009",
+ "name": "صندوق منظم مجوهرات",
+ "frame": 7,
+ "hook": 11,
+ "closing": 8,
+ "cover_hook": "حليك [مرتبين] فبلاصة وحدة",
+ "cover_time": "v2 @ 2.5 (open pink box full of jewelry, clean frame)",
+ "clips_used": "v2 (720x1280, 17.7s, jewelry filled box: clean except a tiny faint English caption from t7 to t15, avoid those seconds for the cover) and v3 (720x1280, 39.9s, empty pink box, clean; tiny pink text 'Boite bijoux disponible' only at t0-1). Not used: v6 (Arabic burned text + EV watermark), v4 (576x1024, not reviewed), v1/v5 (576x1024 duplicates), v7 = v3 duplicate",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; maxEnd is the last clean source second",
+  "v2 t7-15: the faint caption 'Diamonds are a girl's best friend' is small and low-contrast but present; windows on v2 L3 (12-15.4) and L6 (16-17.65) overlap it slightly: add band:0.00-0.55? not possible (product low): if Top objects, replace those two shots with v3 shots",
+  "v3 shows an empty box; v2 shows it full: sentences about full organisation are on v2",
+  "closing 8 is split in 3 lines (A 4 s, B 3 s, C 1.6 s)",
+  "estimated voice ~31 s",
+  "words to confirm: الصُّنْدُوقْ لْلْمْجَوْهْرَاتْ, الْعْقُودْ, الْحْلَقْ, الْحْلِي, الرّْفّْ الْفُوقَانِي كَيْتْحَيّْدْ"
+ ]
+}
