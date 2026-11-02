@@ -1,4 +1,4 @@
-# cover3.py — one strong shot + one short hook line, no phone badge (Top 02/11)
+# cover3.py — one strong shot + one short hook line, no phone badge (Top 02/11); line-height 1.42 = small gap between line 1 and 2 (Top 02/11 21:22)
 # usage: python3 cover3.py video_or_image STYLE out.jpg T "hook line" [small line]
 import sys,subprocess,os,html,tempfile
 v,s,out,t,hook=sys.argv[1:6]; small=sys.argv[6] if len(sys.argv)>6 else ''
@@ -18,7 +18,7 @@ body{{margin:0;width:1080px;height:1920px;position:relative;overflow:hidden;dire
 .im{{position:absolute;inset:0;background:url('file://{tmp}/i.png') center/cover}}
 .sh{{position:absolute;left:0;right:0;top:300px;height:520px;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.55) 30%,rgba(0,0,0,.55) 70%,rgba(0,0,0,0))}}
 .box{{position:absolute;left:70px;right:70px;top:430px;text-align:center}}
-.hk{{font-family:Marhey;font-size:{fs}px;line-height:1.18;color:#fff;-webkit-text-stroke:3px rgba(0,0,0,.5);paint-order:stroke fill;filter:drop-shadow(0 6px 5px rgba(0,0,0,.95))}}
+.hk{{font-family:Marhey;font-size:{fs}px;line-height:1.42;color:#fff;-webkit-text-stroke:3px rgba(0,0,0,.5);paint-order:stroke fill;filter:drop-shadow(0 6px 5px rgba(0,0,0,.95))}}
 .hk b{{font-weight:inherit;color:#111;-webkit-text-stroke:0;background:{HL};padding:0 22px 10px;border-radius:22px;box-decoration-break:clone;-webkit-box-decoration-break:clone}}
 .sm{{margin-top:22px;font-family:Marhey;font-size:46px;color:{a};filter:drop-shadow(0 3px 3px rgba(0,0,0,.95))}}
 .fr{{position:absolute;inset:0;background:url('file://{FD}/frame.png')}}

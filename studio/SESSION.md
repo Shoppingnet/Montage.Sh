@@ -50,6 +50,7 @@ Use one of the 10 approved feminine closings in `/home/claude/kit/ctas_F.txt` (c
 - Text: one short Darija hook line (2–5 words) in the upper-centre eye zone, with ONE key word in [brackets] → shown in a coloured box. Line goes with the video's hook / ad copy (problem→result). Pure Darija, no tashkeel needed on the image.
 - Facebook policy: no before/after for body/health products, no questions or claims about the viewer's health or personal situation ("واش ضهرك كيضرك؟" ✗ → "كيعاونك تبقاي بضهر مقاد" ✓), no exaggerated promises, little text.
 - Render: `python3 /home/claude/kit/cover3.py <hero.png> <FRAME_STYLE> <REF>_cover.jpg 0 "<hook with [word]>"` — the colour of the word box follows FRAME_STYLE, so every product gets a different colour.
+- (Top 02/11 21:22, approved the style) keep a small gap between line 1 and line 2 of the hook (cover3.py line-height 1.42); never add more lines than the hook itself.
 
 ## If your session cannot reach Gemini (403 on generativelanguage.googleapis.com) — B and C, 02/11
 Do NOT stop. Do everything except the voice and the final build, and hand over through this repo:
