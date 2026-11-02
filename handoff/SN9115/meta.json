@@ -1,0 +1,19 @@
+{
+ "ref": "SN9115",
+ "name": "مجموعة رسم فاخرة 208 قطع",
+ "frame": 10,
+ "hook": 1,
+ "closing": 3,
+ "cover_hook": "[208] قطعة فصاك وحد",
+ "cover_time": "v3 @ 12.0 (open case: palette, crayons, markers; clean but slightly tilted)",
+ "clips_used": "v3 (1080x1920, 17.5s, clean, no text, hand-held and a bit shaky) and v2 (1080x1920, 28s, English caption at y~0.14-0.22 on every frame -> band:0.26-1.00 = 1.35x, the product sits in the lower 70%). v2 is mostly a static top view with a pointing hand: only t0-9 are really informative, so closing-line shots reuse static parts. Not used: v1 (720p, constant title bar), v4 (red title bar), v5 (captions), v6/v7/v8/v9 (faces, Arabic captions, prices 4.990 KD / 237 dirhams), v10 not reviewed",
+ "notes": [
+  "weak point: only ~30 s of clean source (v3 17.5 + v2 ~12 informative): all shots are slow-mo 1.5x; footage is repetitive. Consider asking Top for a better clip if this video underperforms",
+  "no price spoken: the product name has only the piece count (208)",
+  "'مِيتِينْ وْتْمَنْيَةْ قِطْعَةْ' follows Top's number correction (list section 4)",
+  "the closing line #3 is one 9 s sentence: the end card covers its last 3 s",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "estimated voice ~33 s",
+  "words to confirm: صَاكْ دْيَالْ الرَّسْمْ, الْقْلَامْ, مْشَابِكْ مْلَوّْنَة, وْكَيْتْحَلّْ"
+ ]
+}
