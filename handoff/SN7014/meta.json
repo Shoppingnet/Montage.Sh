@@ -1,0 +1,5 @@
+{"frame": 3, "hook": 8, "closing": 10, "cover_hook": "المواعن [مرتبين] ومحضيين", "cover_time": "v3 10.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v4 different open rack model; v5 different model + captions; v1 18-23 other kitchens; v2 21-23 promo text",
+ "weak_points": "v1 caption at the top -> band:0.14-1.00; v2 logo top-left + small bottom text -> band:0.10-0.92; v2 and v3 share some takes (kept different seconds)",
+ "new_words": "اُلْمْوَاعْنْ / لَاڤابُو (per Top), الزّْلَايْفْ, الْكِيسَانْ, الطّْنَاجْرْ, الْمْقَالِي, الْغْبْرَةْ — to confirm"}
