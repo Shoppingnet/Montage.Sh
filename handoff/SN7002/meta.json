@@ -1,0 +1,5 @@
+{"frame": 7, "hook": 14, "closing": 8, "cover_hook": "ليگات [الجيلي] لليدين", "cover_time": "v6 4.0 (band 0.00-0.78)",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1 captions; v2 text top+bottom; v3 moving Tyshoo.com watermark + price sticker; v4/v5/v7 captions/phone number; v9 Chinese text; v10 3-14 text",
+ "weak_points": "mostly one clip (v6, one location, a man's hand); v6 caption bottom-right cropped with band:0.00-0.78; v8 576p in fit mode; body-care product -> cover must avoid before/after or skin claims",
+ "new_words": "كَيْرَطّْبُو / رْطَبْ (moisturize / soft), جِيلِي, الْبَاكِيَّةْ — to confirm. Offer line is taken from the product name"}
