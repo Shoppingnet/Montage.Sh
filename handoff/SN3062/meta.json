@@ -1,0 +1,6 @@
+{"frame": 3, "hook": 2, "closing": 7, "cover_hook": "كل [حوايجك] مرتبين", "cover_time": "v8 9.0 (band 0.00-0.82)",
+ "build": "uses bf: mode -> build with mytools/buildD.py",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v1 price/phone captions (Ksh); v2/v6 576p with captions; v4 360p; v5 price offer banner; v7 white model + instruction sheet",
+ "weak_points": "v3 has Arabic captions at ~y0.62-0.70 -> bf:0.00-0.58 (band shown without over-zoom on blurred bg) — check that every caption is gone (e.g. 14.4 has a blurred patch); v8 caption bottom cropped",
+ "new_words": "الْعْلَّاقَةْ (per Top), الْكْرُوشِيَاتْ (per Top), الْكْسَاوِي, الْمْدْخَلْ — to confirm"}
