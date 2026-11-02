@@ -1,0 +1,19 @@
+{
+ "ref": "SN9070",
+ "name": "كرسي استلقاء قابل للطي",
+ "frame": 6,
+ "hook": 2,
+ "closing": 9,
+ "cover_hook": "كرسي [مريح] وكيتطوى",
+ "cover_time": "v4 @ 16.0 (open chair held in the garden, hands only)",
+ "clips_used": "v4 (714x1280, 45.3s, clean: no text, no faces, legs/hands only) is the main source; v1 (1080x1920, 43.9s) only t30-33 (folding) and t38-42 (headrest close-up) with band:0.00-0.82 to cut the burned English subtitles at y~0.88. Not used: v3 (Arabic burned caption + BASBOUS GIFTS logo + face), v9 (Arabic captions + phone number + face), v2/v8 (low-res), v5=v4 and v6=v1 duplicates",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; maxEnd is the last clean source second",
+  "v1 t0-26: woman's face + subtitles: do not use. v1 t29 head partly visible: window starts at 30",
+  "v4 t33 and t38: head of the man lying is partly visible: avoid those seconds (windows do not include them)",
+  "hook 2 chosen (gender neutral) because the chair is masculine in Darija (كُرْسِي, pronoun ـو); do not use feminine hooks 13/14/19",
+  "closing 9 split in two lines; the first line (~4 s) is spoken over v1 folding shots",
+  "estimated voice ~30 s",
+  "words to confirm: كُرْسِي كَيْتْفَتَّحْ, الْقْمَاشْ دْيَالُو شَبَكَة, مْخَدَّة صْغِيرَة لْلرَّاسْ, وْتْهَزّْهْ بْيَدّْ وَحْدَة"
+ ]
+}
