@@ -1,0 +1,19 @@
+{
+ "ref": "SN3058",
+ "name": "شماعة الملابس المعدنية (36 مقبض)",
+ "frame": 1,
+ "hook": 15,
+ "closing": 1,
+ "cover_hook": "[36] مقبض فعلاقة وحدة",
+ "cover_time": "v3 @ 11.0 (full rack with socks, plain frame; cover already rendered as SN3058_cover.jpg with cover3, frame 1)",
+ "clips_used": "v1 (720x1280, 14.1s), v3 (720x1280, 12.4s), v4 (720x1280, 11.7s); v2 skipped (underwear + burned Chinese caption)",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; maxEnd is the last clean source second for that shot (6th item is extra, mkplan ignores it)",
+  "v1 t0-4 has a burned yellow Chinese caption at the bottom: line 1 uses band:0.00-0.84 to cut it",
+  "v4 t7 has a black band at the bottom: not used",
+  "weak point: rack colour changes between clips (rose-gold, blue, green, black) - same model, different colours",
+  "hook 15 chosen because the opening shot (hands hooking the rack on a rail, v4 1-3s) proves 'easy'; no clean 'problem' footage exists for this product",
+  "estimated voice length ~33 s; if shorter than 30 s, repeat nothing: add a sentence on the v3 balcony close-ups (8-10s clip squeezing)",
+  "words to confirm: فْثَوَانِي (from Top's list), بْلَاصَة وَحْدَة, حْوَايْجْ بْزَّافْ مْعَلّْقِينْ"
+ ]
+}
