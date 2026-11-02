@@ -1,0 +1,5 @@
+{"frame": 4, "hook": 16, "closing": 9, "cover_hook": "[بلاصة] زايدة فالكوزينة", "cover_time": "v5 5.0",
+ "shots_format": "[line, clip, start, flags, weight, end] — timeplan.py compatible; clip vN = Nth URL in urls.json",
+ "skipped": "v2 3-10 burned titles; v1 0 and 8, v5 2-3 and 8-10 presenter faces",
+ "weak_points": "only ~33 s of clean footage (5 short clips of 8-10 s) -> many short shots, some slowed; all clips look like AI-generated ad footage (realistic, not fantasy) — check",
+ "new_words": "الْكُونْطْوَارْ (countertop), الْمِيكْرُووَنْدْ, الْفُوطَةْ, الْمْغَارْفْ — to confirm"}
