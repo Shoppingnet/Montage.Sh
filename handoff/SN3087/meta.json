@@ -1,0 +1,20 @@
+{
+ "ref": "SN3087",
+ "name": "الغسالة المحمولة",
+ "frame": 6,
+ "hook": 8,
+ "closing": 2,
+ "cover_hook": "غسالة [صغيرة] فالطس",
+ "cover_time": "v5 @ 16.5 (device close-up with the control panel and handle on a bucket, 1080p, clean)",
+ "clips_used": "v5 (1080x1920, 24s, POV, hands only, clean, no text) and v4 (1080x1920, 31s: tiny captions at the very bottom y>0.88 -> band:0.00-0.86; a woman in a white blouse whose head is cropped at t0-12 and t17-24 but SHOWS HER FACE at t13-16 and probably after t25: those seconds are never used). Only ~43 s of clean source",
+ "notes": [
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]",
+  "v4 t13-16: face visible (smiling at the camera): do not extend any v4 window across it",
+  "v4 t17-21 shows a stained t-shirt but no clear clean result: no cleaning-power claim in the script",
+  "hook 8 (old way) is shown over the traditional wooden tub of v4 t0-2",
+  "closing #2 is split in two lines (A ~3.5 s, B ~4.8 s with the end card)",
+  "'غَسَّالَة صْغِيرَة' follows Top's list (آلة د الغسيل ← غسالة صغيرة); 'الطَّسّْ' (basin) is a new word to confirm",
+  "estimated voice ~30 s; if shorter, add a sentence over v5 t5-9 (foam) or v4 t23-24 hands in the foam",
+  "words to confirm: الطَّسّْ, لَوْحَة بْالزْرَارْ, كَتْهَزِّيهَا بْيَدّْ وَحْدَة"
+ ]
+}
