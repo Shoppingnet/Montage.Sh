@@ -1,0 +1,18 @@
+{
+ "ref": "SN2040",
+ "name": "مشبك قابل للتدوير",
+ "frame": 4,
+ "hook": 9,
+ "closing": 3,
+ "cover_hook": "[ثبت] الميني مولور بسهولة",
+ "cover_time": "v7 @ 1.0 (clamp holding the grinder, hand tightening) or v6 @ 14.0",
+ "clips_used": "v6 (720x1280, 19.9s) and v7 (720x1280, 16.1s), clean, no text. Douyin links (v1-5, v8) not downloadable. Total clean footage ~36 s (just above the 34 s minimum, so slow-mo is used on most shots)",
+ "notes": [
+  "product = swivel bench clamp holding an angle grinder / drill (mini-meuleuse). Script says الْمِيني مُولُورْ (Top's word for the machine) and الطَّبْلَة for the table",
+  "v6 t16 shows a person standing in floral trousers (no face): avoided; shots.json windows do not include it. v6 t17-19 rusty blade grinding with sparks is usable",
+  "shots.json = mkplan format [lineIdx, clip, start, flag, weight, maxEnd]; maxEnd is the last clean source second",
+  "closing line #3 is one long sentence (~9 s): its last 3 s are covered by the end card; the three shots are interchangeable",
+  "estimated voice ~31 s; if shorter add: وْمَا كَيْتْحَرَّكْشْ (not shown clearly: do not add unless v7 t3-6 holds steady)",
+  "words to confirm: مِشْبَكْ, الْبُولُونْ, الْمِيني مُولُورْ, كَيْدُورْ مْنْ كُلّْ نَاحْيَة, كَتْحَدّْدِي الْمُوسْ"
+ ]
+}
